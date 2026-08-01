@@ -1,0 +1,21 @@
+spring:
+  application:
+    name: servicio-auth
+  datasource:
+    url: jdbc:postgresql://localhost:5432/quejas_bancarias_db
+    username: admin
+    password: Admin123$
+  jpa:
+    hibernate:
+      ddl-auto: update # Hibernate creará las tablas automáticamente si no existen
+    show-sql: true # Útil para ver las consultas en consola durante el desarrollo
+    properties:
+      hibernate:
+        format_sql: true
+
+server:
+  port: 8081 # Cada microservicio correrá en un puerto distinto
+
+jwt:
+  secret: 404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970 # Llave secreta en Base64 (Cámbiala en producción)
+  expiration: 86400000 # 1 día en milisegundos

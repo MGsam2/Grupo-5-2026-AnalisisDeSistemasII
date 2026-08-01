@@ -1,0 +1,14 @@
+# Node / React
+node_modules/
+dist/
+.env
+
+# Spring Boot / Java
+target/
+*.jar
+.mvn/wrapper/maven-wrapper.jar
+
+# VS Code / IDEs
+.vscode/
+.idea/
+*.iml
