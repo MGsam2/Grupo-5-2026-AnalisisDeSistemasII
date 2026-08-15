@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import imagenFondo from '../assets/banca1.png';
 
 function Login({ onLoginSuccess }) {
   const [email, setEmail] = useState('');
@@ -21,7 +22,6 @@ function Login({ onLoginSuccess }) {
         localStorage.setItem('token', token);
         setMensaje('¡Login exitoso!');
         
-        // Le avisamos a la app que ya puede mostrar el Portal
         setTimeout(() => {
           onLoginSuccess();
         }, 1000);
@@ -35,43 +35,70 @@ function Login({ onLoginSuccess }) {
   };
 
   return (
-    <div style={{ maxWidth: '400px', margin: '50px auto', padding: '20px', fontFamily: 'sans-serif' }}>
-      <h2>Bienvenido al Banco</h2>
-      <p>Inicia sesión para gestionar tus quejas</p>
+    <div className="split-layout">
       
-      <form onSubmit={manejarSumbit} style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
-        <div>
-          <label>Correo Electrónico:</label><br />
-          <input 
-            type="email" 
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-            style={{ width: '100%', padding: '8px', marginTop: '5px' }}
-          />
+      <div 
+        className="hero-section" 
+        style={{ backgroundImage: `url(${imagenFondo})` }}
+      >
+        <div className="hero-overlay"></div>
+        <div className="hero-content">
+          <h1>Bienvenido a Banco Capital Nacional</h1>
+          <p>Por favor ingresa tus credenciales para acceder a tu cuenta.</p>
         </div>
-        
-        <div>
-          <label>Contraseña:</label><br />
-          <input 
-            type="password" 
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-            style={{ width: '100%', padding: '8px', marginTop: '5px' }}
-          />
-        </div>
-        
-        <button type="submit" style={{ padding: '10px', backgroundColor: '#0056b3', color: 'white', border: 'none', cursor: 'pointer' }}>
-          Ingresar
-        </button>
-      </form>
+      </div>
 
-      {mensaje && (
-        <div style={{ marginTop: '20px', padding: '10px', backgroundColor: '#f0f8ff', border: '1px solid #0056b3' }}>
-          <strong>{mensaje}</strong>
+      <div className="form-section">
+        <div className="form-container">
+          
+          <div className="brand-header">
+            <div className="logo-circle">
+              <span style={{ fontWeight: 'bold', fontSize: '20px', color: 'white', letterSpacing: '1px' }}>BCN</span>
+            </div>
+            <div className="brand-text">
+              <h2>Banco Capital Nacional</h2>
+              <p>Sistema Bancario Digital</p>
+            </div>
+          </div>
+
+          <form onSubmit={manejarSumbit}>
+            
+            <div className="input-group">
+              <label>Username or Email *</label>
+              <input 
+                type="email" 
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="Username or Email"
+                required
+              />
+            </div>
+            
+            <div className="input-group">
+              <label>Password *</label>
+              <input 
+                type="password" 
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="Password"
+                required
+              />
+            </div>
+            
+            <button type="submit" className="submit-btn">
+              Sign In
+            </button>
+            
+          </form>
+
+          {mensaje && (
+            <div className="mensaje-sistema">
+              {mensaje}
+            </div>
+          )}
+
         </div>
-      )}
+      </div>
     </div>
   );
 }
