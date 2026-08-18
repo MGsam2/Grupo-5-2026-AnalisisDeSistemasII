@@ -14,10 +14,9 @@ public class QuejaServicio {
     private QuejaRepositorio quejaRepositorio;
 
     public Queja crearQueja(Queja queja, String usuarioEmail) {
-        queja.setUsuarioEmail(usuarioEmail);
-        queja.setEstado("PENDIENTE");
-        return quejaRepositorio.save(queja);
-    }
+    queja.setUsuarioEmail(usuarioEmail);
+    return quejaRepositorio.save(queja);
+}
 
     public List obtenerQuejasPorUsuario(String usuarioEmail) {
         return quejaRepositorio.findByUsuarioEmail(usuarioEmail);

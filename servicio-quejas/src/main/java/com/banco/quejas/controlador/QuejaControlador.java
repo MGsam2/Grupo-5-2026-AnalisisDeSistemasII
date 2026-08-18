@@ -1,12 +1,28 @@
 package com.banco.quejas.controlador;
 
+import com.banco.quejas.modelo.Documento;
+import com.banco.quejas.modelo.EstadoQueja;
+import com.banco.quejas.modelo.Producto;
 import com.banco.quejas.modelo.Queja;
+import com.banco.quejas.repositorio.DocumentoRepositorio;
+import com.banco.quejas.repositorio.EstadoQuejaRepositorio;
+import com.banco.quejas.repositorio.ProductoRepositorio;
 import com.banco.quejas.servicio.QuejaServicio;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
+import com.banco.quejas.servicio.EmailServicio;
 
+import java.io.File;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.Base64;
 import java.util.List;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/quejas")
@@ -15,22 +31,126 @@ public class QuejaControlador {
     @Autowired
     private QuejaServicio quejaServicio;
 
-    // Endpoint para crear una nueva queja
+    @Autowired
+    private DocumentoRepositorio documentoRepositorio;
+
+    @Autowired
+    private ProductoRepositorio productoRepositorio;
+
+    @Autowired
+    private EstadoQuejaRepositorio estadoQuejaRepositorio;
+
+    @Autowired
+    private EmailServicio emailServicio;
+
+    private final String UPLOAD_DIR = "uploads/";
+
     @PostMapping
     public ResponseEntity crearQueja(
-            @RequestBody Queja queja,
-            @RequestHeader(value = "X-User-Email") String usuarioEmail) {
-        
-        Queja nuevaQueja = quejaServicio.crearQueja(queja, usuarioEmail);
-        return ResponseEntity.ok(nuevaQueja);
+            @RequestParam("titulo") String titulo,
+            @RequestParam("descripcion") String descripcion,
+            @RequestParam("productoId") Long productoId, // RN06: Requerimos el producto seleccionado
+            @RequestParam(value = "archivo", required = false) MultipartFile archivo,
+            @RequestHeader("Authorization") String authHeader) {
+
+        try {
+            String emailUsuario = extraerEmailDelToken(authHeader);
+
+            // RN07: Validaciones de archivo (PDF/JPEG y máximo 2MB)[cite: 2]
+            if (archivo != null && !archivo.isEmpty()) {
+                String tipo = archivo.getContentType();
+                if (tipo == null || (!tipo.equals("application/pdf") && !tipo.equals("image/jpeg"))) {
+                    return ResponseEntity.badRequest().body("Error: El documento debe ser en formato PDF o JPEG.");
+                }
+                if (archivo.getSize() > 2097152) { // 2MB en bytes
+                    return ResponseEntity.badRequest()
+                            .body("Error: El documento no debe superar el tamaño máximo de 2 MB.");
+                }
+            }
+
+            // RN05: Validar y asignar el producto[cite: 2]
+            Producto producto = productoRepositorio.findById(productoId)
+                    .orElseThrow(() -> new Exception("El producto seleccionado no es válido."));
+
+            // RN04: El estado inicial obligatorio es "Registrada"[cite: 2]
+            EstadoQueja estadoInicial = estadoQuejaRepositorio.findByNombre("Registrada");
+            if (estadoInicial == null) {
+                throw new Exception("Error interno: Catálogo de estados no inicializado.");
+            }
+
+            Queja nuevaQueja = new Queja();
+            nuevaQueja.setTitulo(titulo);
+            nuevaQueja.setDescripcion(descripcion);
+            nuevaQueja.setProducto(producto);
+            nuevaQueja.setEstado(estadoInicial);
+
+            Queja quejaGuardada = quejaServicio.crearQueja(nuevaQueja, emailUsuario);
+
+            // RN07: Guardar el documento físico y sus metadatos[cite: 2]
+            if (archivo != null && !archivo.isEmpty()) {
+                File directorio = new File(UPLOAD_DIR);
+                if (!directorio.exists())
+                    directorio.mkdirs();
+
+                String nombreOriginal = archivo.getOriginalFilename();
+                String extension = nombreOriginal.substring(nombreOriginal.lastIndexOf("."));
+                String nombreUnico = UUID.randomUUID().toString() + extension;
+
+                Path rutaCompleta = Paths.get(UPLOAD_DIR + nombreUnico);
+                Files.copy(archivo.getInputStream(), rutaCompleta);
+
+                // Conservar metadatos en la base de datos[cite: 2]
+                Documento doc = new Documento();
+                doc.setQueja(quejaGuardada);
+                doc.setNombreOriginal(nombreOriginal);
+                doc.setTipoArchivo(archivo.getContentType());
+                doc.setTamano(archivo.getSize());
+                doc.setRutaFisica(rutaCompleta.toString());
+                doc.setUsuarioCarga(emailUsuario);
+
+                documentoRepositorio.save(doc);
+            }
+
+            // NUEVO: Enviar correo electrónico de notificación al cliente
+            try {
+                emailServicio.enviarCorreoRegistroQueja(
+                        emailUsuario,
+                        quejaGuardada.getNumeroTicket(),
+                        quejaGuardada.getTitulo());
+            } catch (Exception correoEx) {
+                // Capturamos el error de correo para que, si el servidor SMTP falla,
+                // la queja de todos modos se guarde con éxito en la base de datos.
+                System.err.println("Advertencia: No se pudo enviar el correo, pero la queja fue guardada: "
+                        + correoEx.getMessage());
+            }
+
+            return ResponseEntity.ok(quejaGuardada);
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.internalServerError().body("Error al registrar la queja: " + e.getMessage());
+        }
     }
 
-    // Endpoint para listar las quejas
     @GetMapping
-    public ResponseEntity<List<Queja>> listarQuejas(
-            @RequestHeader(value = "X-User-Email") String usuarioEmail) {
-        
-        List<Queja> quejas = quejaServicio.obtenerQuejasPorUsuario(usuarioEmail);
-        return ResponseEntity.ok(quejas);
+    public ResponseEntity listarQuejas(@RequestHeader("Authorization") String authHeader) {
+        try {
+            String emailUsuario = extraerEmailDelToken(authHeader);
+            List quejas = quejaServicio.obtenerQuejasPorUsuario(emailUsuario);
+            return ResponseEntity.ok(quejas);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.internalServerError().body("Error al obtener las quejas");
+        }
+    }
+
+    private String extraerEmailDelToken(String authHeader) throws Exception {
+        String token = authHeader.replace("Bearer ", "");
+        String[] chunks = token.split("\\.");
+        Base64.Decoder decoder = Base64.getUrlDecoder();
+        String payload = new String(decoder.decode(chunks[1]));
+        ObjectMapper mapper = new ObjectMapper();
+        JsonNode payloadJson = mapper.readTree(payload);
+        return payloadJson.get("sub").asText();
     }
 }

@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import RegistrarQueja from './RegistrarQueja';
 
 function Portal({ onLogout }) {
   const [vistaActiva, setVistaActiva] = useState('sobre-nosotros');
@@ -152,17 +153,7 @@ function Portal({ onLogout }) {
           )}
 
           {vistaActiva === 'registrar' && (
-            <div className="content-card fade-in">
-              <h2 className="card-title">Registrar una nueva queja</h2>
-              <p className="card-text">Complete los campos a continuación para generar un nuevo ticket en nuestro sistema. El departamento correspondiente evaluará el caso en un plazo de 24 a 48 horas hábiles.</p>
-              
-              <div className="placeholder-form">
-                <div className="dummy-input"></div>
-                <div className="dummy-input"></div>
-                <div className="dummy-textarea"></div>
-                <div className="dummy-btn"></div>
-              </div>
-            </div>
+            <RegistrarQueja />
           )}
 
           {vistaActiva === 'ver' && (

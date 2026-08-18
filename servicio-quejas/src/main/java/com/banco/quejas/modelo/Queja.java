@@ -2,6 +2,7 @@ package com.banco.quejas.modelo;
 
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
+import java.util.UUID;
 
 @Entity
 @Table(name = "quejas")
@@ -11,24 +12,43 @@ public class Queja {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Column(unique = true, nullable = false, updatable = false)
+    private String numeroTicket;
+
     @Column(nullable = false)
     private String titulo;
 
     @Column(nullable = false, length = 1000)
     private String descripcion;
 
-    @Column(nullable = false)
-    private String estado = "PENDIENTE"; // PENDIENTE, EN_REVISION, RESUELTA
+    // Relación con el catálogo de Productos
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "producto_id", nullable = false)
+    private Producto producto;
+
+    // Relación con el catálogo de Estados
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "estado_id", nullable = false)
+    private EstadoQueja estado;
 
     @Column(nullable = false)
-    private String usuarioEmail; // Para vincularla con el usuario del Auth Service
+    private String usuarioEmail;
 
     @Column(updatable = false)
-    private LocalDateTime fechaCreacion = LocalDateTime.now();
+    private LocalDateTime fechaCreacion;
+
+    @PrePersist
+    protected void onCreate() {
+        this.fechaCreacion = LocalDateTime.now();
+        this.numeroTicket = "QJ-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase();
+    }
 
     // Getters y Setters
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
+
+    public String getNumeroTicket() { return numeroTicket; }
+    public void setNumeroTicket(String numeroTicket) { this.numeroTicket = numeroTicket; }
 
     public String getTitulo() { return titulo; }
     public void setTitulo(String titulo) { this.titulo = titulo; }
@@ -36,8 +56,11 @@ public class Queja {
     public String getDescripcion() { return descripcion; }
     public void setDescripcion(String descripcion) { this.descripcion = descripcion; }
 
-    public String getEstado() { return estado; }
-    public void setEstado(String estado) { this.estado = estado; }
+    public Producto getProducto() { return producto; }
+    public void setProducto(Producto producto) { this.producto = producto; }
+
+    public EstadoQueja getEstado() { return estado; }
+    public void setEstado(EstadoQueja estado) { this.estado = estado; }
 
     public String getUsuarioEmail() { return usuarioEmail; }
     public void setUsuarioEmail(String usuarioEmail) { this.usuarioEmail = usuarioEmail; }

@@ -18,8 +18,9 @@ function Login({ onLoginSuccess }) {
       });
 
       if (respuesta.ok) {
-        const token = await respuesta.text();
-        localStorage.setItem('token', token);
+        const data = await respuesta.json();
+        localStorage.setItem('token', data.token); // Guardamos SOLO el string del token
+        
         setMensaje('¡Login exitoso!');
         
         setTimeout(() => {

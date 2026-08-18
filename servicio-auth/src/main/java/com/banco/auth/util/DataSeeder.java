@@ -34,11 +34,11 @@ public class DataSeeder implements CommandLineRunner {
         }
 
         // Crea un usuario administrador por defecto si no existe
-        if (!usuarioRepositorio.existsByEmail("admin@banco.com")) {
+        if (!usuarioRepositorio.existsByEmail("elgarciam4@gmail.com")) {
             Usuario admin = new Usuario();
             admin.setNombre("Admin");
             admin.setApellido("Sistema");
-            admin.setEmail("admin@banco.com");
+            admin.setEmail("elgarciam4@gmail.com");
             // Encriptamos la contraseña "Admin123$" usando BCrypt
             admin.setPassword(passwordEncoder.encode("Admin123$")); 
             

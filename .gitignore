@@ -12,3 +12,6 @@ target/
 .vscode/
 .idea/
 *.iml
+
+# Ignorar evidencias subidas por los usuarios
+uploads/
