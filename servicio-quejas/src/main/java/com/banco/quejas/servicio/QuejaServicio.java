@@ -25,4 +25,8 @@ public class QuejaServicio {
     public List obtenerTodasLasQuejas() {
         return quejaRepositorio.findAll();
     }
+
+    public Queja obtenerQuejaPorTicket(String numeroTicket) {
+        return quejaRepositorio.findByNumeroTicket(numeroTicket);
+    }
 }

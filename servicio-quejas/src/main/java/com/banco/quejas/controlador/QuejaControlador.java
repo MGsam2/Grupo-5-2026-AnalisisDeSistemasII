@@ -15,7 +15,10 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import com.banco.quejas.servicio.EmailServicio;
-
+import org.springframework.core.io.Resource;
+import org.springframework.core.io.UrlResource;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import java.io.File;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -141,6 +144,79 @@ public class QuejaControlador {
         } catch (Exception e) {
             e.printStackTrace();
             return ResponseEntity.internalServerError().body("Error al obtener las quejas");
+        }
+    }
+
+    // Endpoint para ver el detalle de una queja específica y sus documentos
+    @GetMapping("/{numeroTicket}")
+    public ResponseEntity<?> obtenerDetalleQueja(
+            @PathVariable String numeroTicket,
+            @RequestHeader("Authorization") String authHeader) {
+        try {
+            String emailUsuario = extraerEmailDelToken(authHeader);
+
+            Queja queja = quejaServicio.obtenerQuejaPorTicket(numeroTicket);
+
+            // Validar que la queja exista y pertenezca al usuario que la solicita
+            if (queja == null || !queja.getUsuarioEmail().equals(emailUsuario)) {
+                return ResponseEntity.status(403).body("Acceso denegado o la queja no existe.");
+            }
+
+            // Buscar los documentos asociados a esta queja
+            List<Documento> documentos = documentoRepositorio.findByQuejaId(queja.getId());
+
+            // Empaquetar la queja y los documentos juntos
+            java.util.Map<String, Object> respuesta = new java.util.HashMap<>();
+            respuesta.put("queja", queja);
+            respuesta.put("documentos", documentos);
+
+            return ResponseEntity.ok(respuesta);
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.internalServerError().body("Error al obtener el detalle de la queja");
+        }
+    }
+
+    // 4. Endpoint para visualizar o descargar un documento físico
+    @GetMapping("/documento/{documentoId}")
+    public ResponseEntity verDocumento(
+            @PathVariable("documentoId") Long documentoId,
+            @RequestHeader("Authorization") String authHeader) {
+        try {
+            String emailUsuario = extraerEmailDelToken(authHeader);
+
+            // 1. Buscar el documento en la base de datos
+            Documento documento = documentoRepositorio.findById(documentoId)
+                    .orElseThrow(() -> new Exception("Documento no encontrado"));
+
+            // 2. Validar seguridad: que el documento pertenezca al usuario que lo solicita
+            if (!documento.getQueja().getUsuarioEmail().equals(emailUsuario)) {
+                return ResponseEntity.status(403).build(); // Acceso denegado
+            }
+
+            // 3. Cargar el archivo físico desde el disco duro
+            Path rutaArchivo = Paths.get(documento.getRutaFisica());
+            Resource recurso = new UrlResource(rutaArchivo.toUri());
+
+            if (!recurso.exists() || !recurso.isReadable()) {
+                throw new Exception("No se puede leer el archivo físico o no existe.");
+            }
+
+            // 4. Determinar el Content-Type dinámicamente (PDF o JPEG)
+            MediaType mediaType = MediaType.parseMediaType(documento.getTipoArchivo());
+
+            // 5. Enviar el archivo. "inline" le dice al navegador que intente mostrarlo (no
+            // descargarlo a la fuerza)
+            return ResponseEntity.ok()
+                    .contentType(mediaType)
+                    .header(HttpHeaders.CONTENT_DISPOSITION,
+                            "inline; filename=\"" + documento.getNombreOriginal() + "\"")
+                    .body(recurso);
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.internalServerError().build();
         }
     }
 

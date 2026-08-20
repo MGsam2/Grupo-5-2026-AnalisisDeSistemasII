@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import RegistrarQueja from './RegistrarQueja';
+import VerQuejas from './VerQuejas';
 
 function Portal({ onLogout }) {
   const [vistaActiva, setVistaActiva] = useState('sobre-nosotros');
@@ -7,7 +8,7 @@ function Portal({ onLogout }) {
 
   return (
     <div className="portal-layout">
-      
+
       {/* 
         El sidebar ya no se destruye. 
         Ahora alterna entre las clases 'open' y 'closed' para animarse con CSS. 
@@ -22,9 +23,9 @@ function Portal({ onLogout }) {
             <p>PORTAL DE GESTIÓN</p>
           </div>
         </div>
-        
+
         <div className="sidebar-menu-title">OPERACIONES</div>
-        
+
         <ul className="nav-list">
           <li className="nav-item">
             <button
@@ -52,12 +53,12 @@ function Portal({ onLogout }) {
       </aside>
 
       <div className="main-wrapper">
-        
+
         <header className="topbar">
           <div style={{ display: 'flex', alignItems: 'center', gap: '20px', height: '100%' }}>
-            
+
             {/* Botón de Hamburguesa Animado */}
-            <button 
+            <button
               onClick={() => setMostrarSidebar(!mostrarSidebar)}
               style={{
                 background: 'transparent',
@@ -79,13 +80,13 @@ function Portal({ onLogout }) {
             </button>
 
             <div className="topbar-tabs">
-              <button 
+              <button
                 onClick={() => setVistaActiva('sobre-nosotros')}
                 className={`tab-btn ${vistaActiva === 'sobre-nosotros' ? 'active-tab' : ''}`}
               >
                 Sobre Nosotros
               </button>
-              <button 
+              <button
                 onClick={() => setVistaActiva('servicios')}
                 className={`tab-btn ${vistaActiva === 'servicios' ? 'active-tab' : ''}`}
               >
@@ -101,7 +102,7 @@ function Portal({ onLogout }) {
         </header>
 
         <main className="content-area">
-          
+
           {vistaActiva === 'sobre-nosotros' && (
             <div className="fade-in">
               <div className="content-header">
@@ -157,17 +158,7 @@ function Portal({ onLogout }) {
           )}
 
           {vistaActiva === 'ver' && (
-            <div className="content-card fade-in">
-              <h2 className="card-title">Tus quejas registradas</h2>
-              <p className="card-text">Historial de tickets generados y su estado actual en la base de datos corporativa.</p>
-              
-              <div className="placeholder-table">
-                <div className="table-header-dummy"></div>
-                <div className="table-row-dummy"></div>
-                <div className="table-row-dummy"></div>
-                <div className="table-row-dummy"></div>
-              </div>
-            </div>
+            <VerQuejas />
           )}
 
         </main>
