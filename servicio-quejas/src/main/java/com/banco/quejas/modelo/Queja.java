@@ -37,6 +37,10 @@ public class Queja {
     @Column(updatable = false)
     private LocalDateTime fechaCreacion;
 
+    // Correo del Agente Bancario asignado automáticamente por el sistema
+    @Column(name = "agente_asignado_email")
+    private String agenteAsignadoEmail;
+
     @PrePersist
     protected void onCreate() {
         this.fechaCreacion = LocalDateTime.now();
@@ -44,27 +48,76 @@ public class Queja {
     }
 
     // Getters y Setters
-    public Long getId() { return id; }
-    public void setId(Long id) { this.id = id; }
+    public Long getId() {
+        return id;
+    }
 
-    public String getNumeroTicket() { return numeroTicket; }
-    public void setNumeroTicket(String numeroTicket) { this.numeroTicket = numeroTicket; }
+    public void setId(Long id) {
+        this.id = id;
+    }
 
-    public String getTitulo() { return titulo; }
-    public void setTitulo(String titulo) { this.titulo = titulo; }
+    public String getNumeroTicket() {
+        return numeroTicket;
+    }
 
-    public String getDescripcion() { return descripcion; }
-    public void setDescripcion(String descripcion) { this.descripcion = descripcion; }
+    public void setNumeroTicket(String numeroTicket) {
+        this.numeroTicket = numeroTicket;
+    }
 
-    public Producto getProducto() { return producto; }
-    public void setProducto(Producto producto) { this.producto = producto; }
+    public String getTitulo() {
+        return titulo;
+    }
 
-    public EstadoQueja getEstado() { return estado; }
-    public void setEstado(EstadoQueja estado) { this.estado = estado; }
+    public void setTitulo(String titulo) {
+        this.titulo = titulo;
+    }
 
-    public String getUsuarioEmail() { return usuarioEmail; }
-    public void setUsuarioEmail(String usuarioEmail) { this.usuarioEmail = usuarioEmail; }
+    public String getDescripcion() {
+        return descripcion;
+    }
 
-    public LocalDateTime getFechaCreacion() { return fechaCreacion; }
-    public void setFechaCreacion(LocalDateTime fechaCreacion) { this.fechaCreacion = fechaCreacion; }
+    public void setDescripcion(String descripcion) {
+        this.descripcion = descripcion;
+    }
+
+    public Producto getProducto() {
+        return producto;
+    }
+
+    public void setProducto(Producto producto) {
+        this.producto = producto;
+    }
+
+    public EstadoQueja getEstado() {
+        return estado;
+    }
+
+    public void setEstado(EstadoQueja estado) {
+        this.estado = estado;
+    }
+
+    public String getUsuarioEmail() {
+        return usuarioEmail;
+    }
+
+    public void setUsuarioEmail(String usuarioEmail) {
+        this.usuarioEmail = usuarioEmail;
+    }
+
+    public LocalDateTime getFechaCreacion() {
+        return fechaCreacion;
+    }
+
+    public void setFechaCreacion(LocalDateTime fechaCreacion) {
+        this.fechaCreacion = fechaCreacion;
+    }
+
+    // Recuerda generar sus respectivos Getter y Setter al final del archivo:
+    public String getAgenteAsignadoEmail() {
+        return agenteAsignadoEmail;
+    }
+
+    public void setAgenteAsignadoEmail(String agenteAsignadoEmail) {
+        this.agenteAsignadoEmail = agenteAsignadoEmail;
+    }
 }

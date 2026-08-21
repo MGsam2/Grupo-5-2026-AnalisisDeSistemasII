@@ -2,6 +2,7 @@ package com.banco.quejas.controlador;
 
 import com.banco.quejas.modelo.Documento;
 import com.banco.quejas.modelo.EstadoQueja;
+import com.banco.quejas.repositorio.QuejaRepositorio;
 import com.banco.quejas.modelo.Producto;
 import com.banco.quejas.modelo.Queja;
 import com.banco.quejas.repositorio.DocumentoRepositorio;
@@ -18,6 +19,7 @@ import com.banco.quejas.servicio.EmailServicio;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.UrlResource;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import java.io.File;
 import java.nio.file.Files;
@@ -45,6 +47,11 @@ public class QuejaControlador {
 
     @Autowired
     private EmailServicio emailServicio;
+    
+    @Autowired
+    private QuejaRepositorio quejaRepositorio;
+
+
 
     private final String UPLOAD_DIR = "uploads/";
 
@@ -114,16 +121,24 @@ public class QuejaControlador {
                 documentoRepositorio.save(doc);
             }
 
-            // NUEVO: Enviar correo electrónico de notificación al cliente
+            // NUEVO: Enviar correos electrónicos de notificación
             try {
+                // 1. Notificar al cliente (Usuario Final)
                 emailServicio.enviarCorreoRegistroQueja(
                         emailUsuario,
                         quejaGuardada.getNumeroTicket(),
                         quejaGuardada.getTitulo());
+
+                // 2. Notificar al Agente Bancario (Si el balanceador asignó uno)
+                if (quejaGuardada.getAgenteAsignadoEmail() != null) {
+                    emailServicio.enviarCorreoAsignacionAgente(
+                            quejaGuardada.getAgenteAsignadoEmail(),
+                            quejaGuardada.getNumeroTicket(),
+                            quejaGuardada.getTitulo());
+                }
+
             } catch (Exception correoEx) {
-                // Capturamos el error de correo para que, si el servidor SMTP falla,
-                // la queja de todos modos se guarde con éxito en la base de datos.
-                System.err.println("Advertencia: No se pudo enviar el correo, pero la queja fue guardada: "
+                System.err.println("Advertencia: No se pudieron enviar los correos, pero la queja fue guardada: "
                         + correoEx.getMessage());
             }
 
@@ -220,6 +235,25 @@ public class QuejaControlador {
         }
     }
 
+    // 5. Endpoint para la Bandeja del Agente Bancario
+    @GetMapping("/mis-asignadas")
+    public ResponseEntity<List<Queja>> obtenerQuejasAsignadasAlAgente(
+            @RequestHeader("Authorization") String authHeader) {
+        try {
+            // Extraemos el correo del agente usando el método que ya tienes programado
+            String emailAgente = extraerEmailDelToken(authHeader);
+
+            // Buscamos solo las quejas que tienen su correo
+            List<Queja> quejasDelAgente = quejaRepositorio.findByAgenteAsignadoEmail(emailAgente);
+
+            return ResponseEntity.ok(quejasDelAgente);
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+    }
+
     private String extraerEmailDelToken(String authHeader) throws Exception {
         String token = authHeader.replace("Bearer ", "");
         String[] chunks = token.split("\\.");
@@ -229,4 +263,5 @@ public class QuejaControlador {
         JsonNode payloadJson = mapper.readTree(payload);
         return payloadJson.get("sub").asText();
     }
+
 }
