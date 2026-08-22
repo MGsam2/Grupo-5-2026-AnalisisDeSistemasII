@@ -47,11 +47,9 @@ public class QuejaControlador {
 
     @Autowired
     private EmailServicio emailServicio;
-    
+
     @Autowired
     private QuejaRepositorio quejaRepositorio;
-
-
 
     private final String UPLOAD_DIR = "uploads/";
 
@@ -172,8 +170,18 @@ public class QuejaControlador {
 
             Queja queja = quejaServicio.obtenerQuejaPorTicket(numeroTicket);
 
-            // Validar que la queja exista y pertenezca al usuario que la solicita
-            if (queja == null || !queja.getUsuarioEmail().equals(emailUsuario)) {
+            // 1. Validar que la queja exista
+            if (queja == null) {
+                return ResponseEntity.status(404).body("La queja no existe.");
+            }
+
+            // 2. REGLA DE NEGOCIO: ¿Es el creador de la queja o el agente asignado?
+            boolean esElCreador = queja.getUsuarioEmail().equals(emailUsuario);
+            boolean esElAgenteAsignado = queja.getAgenteAsignadoEmail() != null && 
+                                         queja.getAgenteAsignadoEmail().equals(emailUsuario);
+
+            // Si no es ninguno de los dos, se bloquea el acceso
+            if (!esElCreador && !esElAgenteAsignado) {
                 return ResponseEntity.status(403).body("Acceso denegado o la queja no existe.");
             }
 

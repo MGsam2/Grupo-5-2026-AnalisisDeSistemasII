@@ -35,4 +35,5 @@ public interface QuejaRepositorio extends JpaRepository<Queja, Long> {
     @Query("SELECT q FROM Queja q WHERE q.estado.nombre = 'PendienteDeAsignacion'")
     java.util.List<Queja> encontrarQuejasPendientes();
 
+
 }

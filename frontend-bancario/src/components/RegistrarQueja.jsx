@@ -95,8 +95,9 @@ function RegistrarQueja() {
         // Intentamos extraer el ID o mensaje del backend si responde con JSON o Texto
         const data = await respuesta.text(); 
         
+        // ${data ? 'Ref: ' + data : ''}
         setMensaje({ 
-          texto: `Queja Registrada con éxito. ${data ? 'Ref: ' + data : ''}`, 
+          texto: `Queja Registrada con éxito.`, 
           tipo: 'exito' 
         });
         

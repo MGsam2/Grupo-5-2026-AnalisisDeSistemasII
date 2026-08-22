@@ -5,11 +5,11 @@ function BandejaAgente({ onLogout }) {
   const [quejas, setQuejas] = useState([]);
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState(null);
-  
+
   // Estados para la vista de detalle
   const [detalleActivo, setDetalleActivo] = useState(null);
   const [cargandoDetalle, setCargandoDetalle] = useState(false);
-  
+
   // Estado para la resolución del agente (Paso 1.3.8)
   const [resolucion, setResolucion] = useState('');
 
@@ -80,13 +80,23 @@ function BandejaAgente({ onLogout }) {
   // VER DETALLE Y DOCUMENTOS (1.3.3 a 1.3.5)
   // ==========================================
   const verDetalle = async (numeroTicket) => {
+    console.log("1. Botón presionado. Buscando ticket:", numeroTicket);
+
+    if (!numeroTicket) {
+      setError('Error interno: El número de ticket está vacío.');
+      return;
+    }
+
     setCargandoDetalle(true);
     setError(null);
-    setResolucion(''); // Limpiamos el campo de resolución anterior
+    setResolucion('');
+
     const token = obtenerToken();
+    const urlConsulta = `/api/quejas/${numeroTicket}`;
+    console.log("2. Haciendo petición a la URL:", urlConsulta);
 
     try {
-      const respuesta = await fetch(`/api/quejas/${numeroTicket}`, {
+      const respuesta = await fetch(urlConsulta, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -94,15 +104,18 @@ function BandejaAgente({ onLogout }) {
         }
       });
 
+      console.log("3. El servidor respondió con el código de estado:", respuesta.status);
+
       if (respuesta.ok) {
         const data = await respuesta.json();
+        console.log("4. Datos recibidos correctamente:", data);
         setDetalleActivo(data);
       } else {
-        setError('No se pudieron cargar los detalles del ticket.');
+        setError(`Error del servidor: Código ${respuesta.status}`);
       }
     } catch (err) {
-      console.error('Error:', err);
-      setError('Error de conexión al intentar obtener los detalles.');
+      console.error('❌ ERROR FATAL DE RED:', err);
+      setError(`Fallo de red o bloqueo CORS: ${err.message}`);
     } finally {
       setCargandoDetalle(false);
     }
@@ -156,10 +169,10 @@ function BandejaAgente({ onLogout }) {
     return (
       <div style={{ padding: '30px', backgroundColor: '#f8fafc', minHeight: '100vh' }}>
         <div className="content-card fade-in" style={{ maxWidth: '1000px', margin: '0 auto', backgroundColor: 'white', padding: '30px', borderRadius: '8px', boxShadow: '0 4px 6px rgba(0,0,0,0.05)' }}>
-          
+
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '25px', borderBottom: '1px solid #e2e8f0', paddingBottom: '15px' }}>
             <h2 style={{ margin: 0, color: '#0f172a' }}>Revisión de Caso #{numeroTicketReal}</h2>
-            <button 
+            <button
               onClick={() => setDetalleActivo(null)}
               style={{ padding: '8px 16px', background: 'transparent', border: '1px solid #cbd5e1', borderRadius: '6px', cursor: 'pointer' }}
             >
@@ -216,9 +229,9 @@ function BandejaAgente({ onLogout }) {
           {/* ÁREA DE GESTIÓN DEL AGENTE */}
           <div style={{ borderTop: '2px dashed #cbd5e1', paddingTop: '20px', marginTop: '20px' }}>
             <h3 style={{ fontSize: '1.2rem', color: '#0f172a', marginBottom: '15px' }}>Gestión del Agente</h3>
-            
+
             <p style={{ fontSize: '0.85rem', color: '#64748b', margin: '0 0 5px 0', fontWeight: '600' }}>PROPUESTA DE RESOLUCIÓN</p>
-            <textarea 
+            <textarea
               value={resolucion}
               onChange={(e) => setResolucion(e.target.value)}
               placeholder="Redacte su análisis y propuesta de resolución aquí..."
@@ -246,7 +259,7 @@ function BandejaAgente({ onLogout }) {
   // ==========================================
   return (
     <div style={{ display: 'flex', minHeight: '100vh', backgroundColor: '#f8fafc' }}>
-      
+
       {/* SIDEBAR BÁSICO DEL AGENTE */}
       <aside style={{ width: '260px', backgroundColor: '#0f172a', color: 'white', display: 'flex', flexDirection: 'column' }}>
         <div style={{ padding: '30px 20px', borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
@@ -269,7 +282,7 @@ function BandejaAgente({ onLogout }) {
       {/* CONTENIDO PRINCIPAL */}
       <main style={{ flex: 1, padding: '40px' }}>
         <div className="content-card fade-in" style={{ backgroundColor: 'white', padding: '30px', borderRadius: '8px', boxShadow: '0 4px 6px rgba(0,0,0,0.05)' }}>
-          
+
           <h1 style={{ color: '#0f172a', fontSize: '1.8rem', marginTop: 0 }}>Mi Bandeja de Quejas Asignadas</h1>
           <p style={{ color: '#64748b', marginBottom: '30px' }}>Seleccione un caso para revisar la documentación y emitir una resolución.</p>
 
@@ -302,7 +315,7 @@ function BandejaAgente({ onLogout }) {
                   {quejas.map((queja) => {
                     const idTicket = obtenerTextoCampo(queja.numeroTicket) || queja.id;
                     const estadoTexto = obtenerTextoCampo(queja.estado) || 'En Validación';
-                    
+
                     return (
                       <tr key={idTicket} style={{ borderBottom: '1px solid #f1f5f9' }}>
                         <td style={{ padding: '15px', color: '#64748b', fontWeight: '500' }}>#{idTicket}</td>
@@ -314,7 +327,7 @@ function BandejaAgente({ onLogout }) {
                           </span>
                         </td>
                         <td style={{ padding: '15px', textAlign: 'right' }}>
-                          <button 
+                          <button
                             onClick={() => verDetalle(idTicket)}
                             style={{ padding: '6px 12px', background: '#0f172a', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '0.85rem' }}
                           >
