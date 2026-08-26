@@ -31,9 +31,11 @@ function Login() {
         const data = await respuesta.json();
         localStorage.setItem('token', data.token);
         localStorage.setItem('rol', data.rol);
-        
+        localStorage.setItem('nombreCliente', data.nombre);
+        localStorage.setItem('apellidoCliente', data.apellido);
+
         const rolRecibido = data.rol ? String(data.rol).toUpperCase() : '';
-        
+
         if (rolRecibido.includes('USUARIO')) {
           navigate('/portal-usuario');
         } else if (rolRecibido.includes('AGENTE')) {
@@ -44,7 +46,7 @@ function Login() {
           console.warn("Rol recibido desde Spring Boot:", data.rol);
           setMensaje({ texto: `Rol recibido (${data.rol}) no tiene un portal asignado aún.`, tipo: 'error' });
         }
-        
+
       } else if (respuesta.status >= 500) {
         // NUEVO: Vite proxy devuelve 502 o 504 cuando Spring Boot está apagado
         setMensaje({ texto: `El servidor no responde (Error ${respuesta.status}). ¿Está encendido el API Gateway?`, tipo: 'error' });
@@ -57,7 +59,7 @@ function Login() {
         } catch (err) {
           console.warn("El backend devolvió un error que no es JSON.");
         }
-        
+
         if (errorData.error === 'CUENTA_INACTIVA') {
           setMensaje({ texto: 'Su cuenta se encuentra inactiva.', tipo: 'error' });
           setCuentaInactiva(true);

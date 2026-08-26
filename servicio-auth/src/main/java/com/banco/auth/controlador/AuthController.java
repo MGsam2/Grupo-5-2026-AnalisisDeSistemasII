@@ -68,6 +68,10 @@ public class AuthController {
         // 4. El sistema identifica el rol del usuario
         String rolPrincipal = authentication.getAuthorities().iterator().next().getAuthority();
 
+        Usuario usuarioLogueado = usuarioOpt.orElse(null);
+        String nombre = (usuarioLogueado != null) ? usuarioLogueado.getNombre() : "";
+        String apellido = (usuarioLogueado != null) ? usuarioLogueado.getApellido() : "";
+
         // 5. El sistema registra el evento en la bitácora de auditoría (Usuario,
         // Fecha/Hora, Rol)
         try {
@@ -82,7 +86,7 @@ public class AuthController {
         }
 
         // 6. Instanciamos el DTO pasándole el token y el rol
-        JwtDto jwtDto = new JwtDto(jwt, rolPrincipal);
+        JwtDto jwtDto = new JwtDto(jwt, rolPrincipal, nombre, apellido);
 
         // 7. Devolvemos el DTO completo al Frontend
         return new ResponseEntity<>(jwtDto, HttpStatus.OK);
@@ -95,7 +99,7 @@ public class AuthController {
         String motivo = request.get("motivo");
 
         // El sistema recibe la solicitud y simula el envío al administrador
-        System.out.println("🚨 NUEVA SOLICITUD DE ACTIVACIÓN RECIBIDA 🚨");
+        System.out.println("NUEVA SOLICITUD DE ACTIVACIÓN RECIBIDA");
         System.out.println("Usuario: " + email);
         System.out.println("Motivo: " + motivo);
         System.out.println("Enviando correo de solicitud al administrador...");

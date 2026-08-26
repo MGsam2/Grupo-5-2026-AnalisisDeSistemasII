@@ -5,7 +5,7 @@ function RegistrarQueja() {
   const [descripcion, setDescripcion] = useState('');
   const [productoId, setProductoId] = useState('');
   const [archivo, setArchivo] = useState(null);
-  
+
   const [mensaje, setMensaje] = useState({ texto: '', tipo: '' });
   const [cargando, setCargando] = useState(false);
 
@@ -21,7 +21,7 @@ function RegistrarQueja() {
   const manejarCambioArchivo = (e) => {
     setMensaje({ texto: '', tipo: '' }); // Limpiamos errores previos
     const file = e.target.files[0];
-    
+
     if (file) {
       // Validación 1: Formato permitido (PDF o JPEG)
       const formatosPermitidos = ['application/pdf', 'image/jpeg'];
@@ -54,7 +54,7 @@ function RegistrarQueja() {
 
     // Extracción segura del token como string
     let tokenString = localStorage.getItem('token');
-    
+
     // Validamos si el token se guardó por error como un objeto JSON stringificado
     if (tokenString && tokenString.startsWith('{')) {
       try {
@@ -76,7 +76,13 @@ function RegistrarQueja() {
     formData.append('titulo', titulo);
     formData.append('descripcion', descripcion);
     formData.append('productoId', productoId);
-    
+
+    const usuarioNombre = localStorage.getItem('nombreCliente') || '';
+    const usuarioApellido = localStorage.getItem('apellidoCliente') || '';
+
+    formData.append('usuarioNombre', usuarioNombre);
+    formData.append('usuarioApellido', usuarioApellido);
+
     if (archivo) {
       formData.append('archivo', archivo);
     }
@@ -93,21 +99,21 @@ function RegistrarQueja() {
 
       if (respuesta.ok) {
         // Intentamos extraer el ID o mensaje del backend si responde con JSON o Texto
-        const data = await respuesta.text(); 
-        
+        const data = await respuesta.text();
+
         // ${data ? 'Ref: ' + data : ''}
-        setMensaje({ 
-          texto: `Queja Registrada con éxito.`, 
-          tipo: 'exito' 
+        setMensaje({
+          texto: `Queja Registrada con éxito.`,
+          tipo: 'exito'
         });
-        
+
         // Limpiamos el formulario
         setTitulo('');
         setDescripcion('');
         setProductoId('');
         setArchivo(null);
-        document.getElementById('input-archivo').value = ''; 
-        
+        document.getElementById('input-archivo').value = '';
+
       } else {
         const errorText = await respuesta.text();
         setMensaje({ texto: `Error del servidor: ${errorText || 'No se pudo registrar la queja.'}`, tipo: 'error' });
@@ -126,16 +132,16 @@ function RegistrarQueja() {
       <p className="card-text" style={{ color: '#64748b', marginBottom: '30px' }}>
         Complete los datos a continuación detallando los hechos. Su queja será enrutada al departamento correspondiente.
       </p>
-      
+
       <form onSubmit={manejarSubmit}>
-        
+
         {/* TÍTULO */}
         <div style={{ marginBottom: '20px' }}>
           <label style={{ display: 'block', fontSize: '0.9rem', fontWeight: '600', marginBottom: '8px', color: '#334155' }}>
             Título de la Queja *
           </label>
-          <input 
-            type="text" 
+          <input
+            type="text"
             value={titulo}
             onChange={(e) => setTitulo(e.target.value)}
             placeholder="Asunto breve de su inconveniente"
@@ -149,7 +155,7 @@ function RegistrarQueja() {
           <label style={{ display: 'block', fontSize: '0.9rem', fontWeight: '600', marginBottom: '8px', color: '#334155' }}>
             Producto Relacionado *
           </label>
-          <select 
+          <select
             value={productoId}
             onChange={(e) => setProductoId(e.target.value)}
             required
@@ -169,7 +175,7 @@ function RegistrarQueja() {
           <label style={{ display: 'block', fontSize: '0.9rem', fontWeight: '600', marginBottom: '8px', color: '#334155' }}>
             Descripción de los Hechos *
           </label>
-          <textarea 
+          <textarea
             value={descripcion}
             onChange={(e) => setDescripcion(e.target.value)}
             placeholder="Detalle de forma clara el incidente reportado..."
@@ -184,9 +190,9 @@ function RegistrarQueja() {
           <label style={{ display: 'block', fontSize: '0.9rem', fontWeight: '600', marginBottom: '8px', color: '#334155' }}>
             Documentación de Respaldo (Opcional)
           </label>
-          <input 
+          <input
             id="input-archivo"
-            type="file" 
+            type="file"
             accept="image/jpeg, application/pdf"
             onChange={manejarCambioArchivo}
             style={{ width: '100%', padding: '10px', background: 'transparent', border: '1px dashed #cbd5e1', borderRadius: '6px', cursor: 'pointer', boxSizing: 'border-box' }}
@@ -197,17 +203,17 @@ function RegistrarQueja() {
         </div>
 
         {/* BOTÓN DE ENVÍO */}
-        <button 
-          type="submit" 
+        <button
+          type="submit"
           disabled={cargando}
-          style={{ 
-            marginTop: '10px', 
-            padding: '12px 24px', 
-            backgroundColor: cargando ? '#94a3b8' : '#00a8ff', 
-            color: 'white', 
-            border: 'none', 
-            borderRadius: '6px', 
-            fontWeight: '600', 
+          style={{
+            marginTop: '10px',
+            padding: '12px 24px',
+            backgroundColor: cargando ? '#94a3b8' : '#00a8ff',
+            color: 'white',
+            border: 'none',
+            borderRadius: '6px',
+            fontWeight: '600',
             cursor: cargando ? 'not-allowed' : 'pointer',
             transition: 'background-color 0.2s',
             width: '100%'
@@ -219,7 +225,7 @@ function RegistrarQueja() {
 
       {/* MENSAJES DE ESTADO */}
       {mensaje.texto && (
-        <div style={{ 
+        <div style={{
           marginTop: '25px', padding: '14px', borderRadius: '6px', textAlign: 'center', fontWeight: '500', fontSize: '0.95rem',
           backgroundColor: mensaje.tipo === 'exito' ? '#f0fdf4' : mensaje.tipo === 'error' ? '#fef2f2' : '#f0f9ff',
           color: mensaje.tipo === 'exito' ? '#166534' : mensaje.tipo === 'error' ? '#991b1b' : '#0369a1',

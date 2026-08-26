@@ -17,8 +17,14 @@ public class BitacoraQueja {
     @Column(name = "queja_id")
     private Long quejaId;
 
-    @Column(name = "estado_queja")
-    private String estadoQueja;
+    @Column(name = "estado_anterior")
+    private String estadoAnterior;
+
+    @Column(name = "estado_nuevo")
+    private String estadoNuevo;
+
+    @Column(name = "descripcion_evento", columnDefinition = "TEXT")
+    private String descripcionEvento;
 
     @Column(name = "fecha_hora")
     private LocalDateTime fechaHora;
@@ -26,23 +32,27 @@ public class BitacoraQueja {
     // Constructor vacío (Requerido por Hibernate)
     public BitacoraQueja() {}
 
-    // Constructor para llenado rápido
-    public BitacoraQueja(String usuarioEmail, Long quejaId, String estadoQueja, LocalDateTime fechaHora) {
+    public BitacoraQueja(String usuarioEmail, Long quejaId, String estadoAnterior, String estadoNuevo, String descripcionEvento, LocalDateTime fechaHora) {
         this.usuarioEmail = usuarioEmail;
         this.quejaId = quejaId;
-        this.estadoQueja = estadoQueja;
+        this.estadoAnterior = estadoAnterior;
+        this.estadoNuevo = estadoNuevo;
+        this.descripcionEvento = descripcionEvento;
         this.fechaHora = fechaHora;
     }
 
-    // Getters y Setters
-    public Long getId() { return id; }
+public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
     public String getUsuarioEmail() { return usuarioEmail; }
     public void setUsuarioEmail(String usuarioEmail) { this.usuarioEmail = usuarioEmail; }
     public Long getQuejaId() { return quejaId; }
     public void setQuejaId(Long quejaId) { this.quejaId = quejaId; }
-    public String getEstadoQueja() { return estadoQueja; }
-    public void setEstadoQueja(String estadoQueja) { this.estadoQueja = estadoQueja; }
+    public String getEstadoAnterior() { return estadoAnterior; }
+    public void setEstadoAnterior(String estadoAnterior) { this.estadoAnterior = estadoAnterior; }
+    public String getEstadoNuevo() { return estadoNuevo; }
+    public void setEstadoNuevo(String estadoNuevo) { this.estadoNuevo = estadoNuevo; }
+    public String getDescripcionEvento() { return descripcionEvento; }
+    public void setDescripcionEvento(String descripcionEvento) { this.descripcionEvento = descripcionEvento; }
     public LocalDateTime getFechaHora() { return fechaHora; }
     public void setFechaHora(LocalDateTime fechaHora) { this.fechaHora = fechaHora; }
 }

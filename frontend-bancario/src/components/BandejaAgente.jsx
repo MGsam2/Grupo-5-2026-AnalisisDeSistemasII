@@ -10,8 +10,10 @@ function BandejaAgente({ onLogout }) {
   const [detalleActivo, setDetalleActivo] = useState(null);
   const [cargandoDetalle, setCargandoDetalle] = useState(false);
 
-  // Estado para la resolución del agente (Paso 1.3.8)
+  // Estados para la gestión del agente
   const [resolucion, setResolucion] = useState('');
+  const [mensajeAccion, setMensajeAccion] = useState({ texto: '', tipo: '' });
+  const [procesandoAccion, setProcesandoAccion] = useState(false);
 
   const navigate = useNavigate();
 
@@ -90,6 +92,7 @@ function BandejaAgente({ onLogout }) {
     setCargandoDetalle(true);
     setError(null);
     setResolucion('');
+    setMensajeAccion({ texto: '', tipo: '' });
 
     const token = obtenerToken();
     const urlConsulta = `/api/quejas/${numeroTicket}`;
@@ -114,7 +117,7 @@ function BandejaAgente({ onLogout }) {
         setError(`Error del servidor: Código ${respuesta.status}`);
       }
     } catch (err) {
-      console.error('❌ ERROR FATAL DE RED:', err);
+      console.error('ERROR FATAL DE RED:', err);
       setError(`Fallo de red o bloqueo CORS: ${err.message}`);
     } finally {
       setCargandoDetalle(false);
@@ -149,6 +152,74 @@ function BandejaAgente({ onLogout }) {
     }
   };
 
+  // ==========================================
+  // FUNCIÓN CENTRALIZADA PARA LAS ACCIONES PUT
+  // ==========================================
+  const ejecutarAccionAgente = async (tipoAccion, numeroTicket) => {
+    // Validación inicial frontend rápida
+    if (!resolucion.trim()) {
+      setMensajeAccion({ texto: 'Debe ingresar un texto antes de enviar.', tipo: 'error' });
+      return;
+    }
+
+    setProcesandoAccion(true);
+    setMensajeAccion({ texto: 'Procesando operación...', tipo: 'info' });
+    const token = obtenerToken();
+
+    // Determinamos la URL y el Body según el botón presionado
+    const endpoint = tipoAccion === 'supervisor'
+      ? `/api/quejas/${numeroTicket}/enviar-supervisor`
+      : `/api/quejas/${numeroTicket}/solicitar-info`;
+
+    const payload = tipoAccion === 'supervisor'
+      ? { resolucion: resolucion }
+      : { justificacion: resolucion };
+
+    try {
+      const respuesta = await fetch(endpoint, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(payload)
+      });
+
+      if (respuesta.ok) {
+        // Si el backend envía el JSON exacto de éxito
+        const data = await respuesta.json();
+        setMensajeAccion({ texto: data.mensaje, tipo: 'exito' });
+
+        // Regresamos al agente al listado después de 2.5 segundos para que vea el éxito
+        setTimeout(() => {
+          setDetalleActivo(null);
+          cargarListado();
+        }, 2500);
+
+      } else if (respuesta.status === 400) {
+        // Flujo alterno FA08: Resolución Incompleta u otro 400
+        const errorMsg = await respuesta.text();
+        // Si el backend devuelve texto o un JSON, tratamos de sacar el error limpio
+        let textoFinal = "Completa este campo.";
+        try {
+          const parsed = JSON.parse(errorMsg);
+          textoFinal = parsed.error || parsed.mensaje || errorMsg;
+        } catch {
+          textoFinal = errorMsg; // Si es texto puro
+        }
+        setMensajeAccion({ texto: textoFinal, tipo: 'error' });
+
+      } else {
+        setMensajeAccion({ texto: 'Ocurrió un error inesperado al procesar la solicitud.', tipo: 'error' });
+      }
+    } catch (error) {
+      console.error('Error al procesar acción:', error);
+      setMensajeAccion({ texto: 'Error de red. Verifique su conexión al servidor.', tipo: 'error' });
+    } finally {
+      setProcesandoAccion(false);
+    }
+  };
+
   const getColorEstado = (estadoTexto) => {
     const clave = estadoTexto ? String(estadoTexto).replace(/\s+/g, '') : '';
     const estados = {
@@ -165,6 +236,9 @@ function BandejaAgente({ onLogout }) {
     const { queja, documentos } = detalleActivo;
     const estadoTexto = obtenerTextoCampo(queja.estado) || 'En Validación';
     const numeroTicketReal = obtenerTextoCampo(queja.numeroTicket);
+    const nombreCompleto = (queja.usuarioNombre || queja.usuarioApellido)
+      ? `${queja.usuarioNombre || ''} ${queja.usuarioApellido || ''}`.trim()
+      : (`Nombre: ${queja.clienteNombre}`);
 
     return (
       <div style={{ padding: '30px', backgroundColor: '#f8fafc', minHeight: '100vh' }}>
@@ -183,7 +257,8 @@ function BandejaAgente({ onLogout }) {
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '25px' }}>
             <div>
               <p style={{ fontSize: '0.85rem', color: '#64748b', margin: '0 0 5px 0', fontWeight: '600' }}>DATOS DEL CLIENTE</p>
-              <p style={{ margin: 0, color: '#1e293b', fontWeight: '500' }}>{queja.contactoUsuario || queja.clienteNombre || 'Usuario ID: ' + queja.idUsuario}</p>
+              <p style={{ margin: 0, color: '#1e293b', fontWeight: '900' }}>{'Nombre: ' + nombreCompleto}</p>
+              <p style={{ margin: 0, color: '#1e293b', fontWeight: '900' }}>{'Correo: ' + queja.usuarioEmail}</p>
             </div>
             <div>
               <p style={{ fontSize: '0.85rem', color: '#64748b', margin: '0 0 5px 0', fontWeight: '600' }}>ESTADO ACTUAL</p>
@@ -193,11 +268,15 @@ function BandejaAgente({ onLogout }) {
             </div>
             <div>
               <p style={{ fontSize: '0.85rem', color: '#64748b', margin: '0 0 5px 0', fontWeight: '600' }}>FECHA DE REGISTRO</p>
-              <p style={{ margin: 0, color: '#1e293b' }}>{queja.fechaYHora || queja.fechaCreacion || 'No disponible'}</p>
+              <p style={{ margin: 0, color: '#1e293b', fontWeight: '900' }}>{queja.fechaYHora || queja.fechaCreacion || 'No disponible'}</p>
             </div>
             <div>
-              <p style={{ fontSize: '0.85rem', color: '#64748b', margin: '0 0 5px 0', fontWeight: '600' }}>TÍTULO / ASUNTO</p>
-              <p style={{ margin: 0, color: '#1e293b' }}>{obtenerTextoCampo(queja.titulo)}</p>
+              <p style={{ fontSize: '0.85rem', color: '#64748b', margin: '0 0 5px 0', fontWeight: '600' }}>PRODUCTO RELACIONADO</p>
+              <p style={{ margin: 0, color: '#1e293b', fontWeight: '900' }}>{obtenerTextoCampo(queja.producto)}</p>
+            </div>
+            <div>
+              <p style={{ fontSize: '0.85rem', color: '#64748b', margin: '0 0 5px 0', fontWeight: '600' }}>TÍTULO</p>
+              <p style={{ margin: 0, color: '#1e293b', fontWeight: '900' }}>{obtenerTextoCampo(queja.titulo)}</p>
             </div>
           </div>
 
@@ -216,7 +295,7 @@ function BandejaAgente({ onLogout }) {
                   <li key={index} style={{ background: '#f8fafc', padding: '10px 15px', borderRadius: '6px', border: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
                     <span style={{ color: '#0f172a', fontSize: '0.9rem', fontWeight: '500' }}>📄 {obtenerTextoCampo(doc.nombreOriginal || doc.nombreArchivo)}</span>
                     <button onClick={() => abrirDocumento(doc.id || doc.documentoId)} style={{ padding: '6px 12px', background: 'white', border: '1px solid #cbd5e1', borderRadius: '4px', cursor: 'pointer' }}>
-                      Descargar Documento
+                      Visualizar Documento
                     </button>
                   </li>
                 ))}
@@ -234,17 +313,38 @@ function BandejaAgente({ onLogout }) {
             <textarea
               value={resolucion}
               onChange={(e) => setResolucion(e.target.value)}
-              placeholder="Redacte su análisis y propuesta de resolución aquí..."
+              placeholder="Redacte su análisis, propuesta de resolucion o requerimiento aquí..."
               rows="4"
               style={{ width: '100%', padding: '12px', borderRadius: '6px', border: '1px solid #cbd5e1', marginBottom: '15px', fontFamily: 'inherit', resize: 'vertical' }}
             ></textarea>
 
+            {/* MENSAJES DE ESTADO DE LA ACCIÓN */}
+            {mensajeAccion.texto && (
+              <div style={{
+                marginBottom: '15px', padding: '12px', borderRadius: '6px', fontSize: '0.9rem', fontWeight: '500',
+                backgroundColor: mensajeAccion.tipo === 'error' ? '#fef2f2' : mensajeAccion.tipo === 'exito' ? '#f0fdf4' : '#f0f9ff',
+                color: mensajeAccion.tipo === 'error' ? '#991b1b' : mensajeAccion.tipo === 'exito' ? '#166534' : '#0369a1',
+                border: `1px solid ${mensajeAccion.tipo === 'error' ? '#fecaca' : mensajeAccion.tipo === 'exito' ? '#bbf7d0' : '#bae6fd'}`
+              }}>
+                {mensajeAccion.texto}
+              </div>
+            )}
+
             <div style={{ display: 'flex', gap: '15px' }}>
-              <button style={{ padding: '10px 20px', background: '#f59e0b', color: 'white', border: 'none', borderRadius: '6px', fontWeight: '600', cursor: 'pointer' }}>
+              <button
+                onClick={() => ejecutarAccionAgente('info', numeroTicketReal)}
+                disabled={procesandoAccion}
+                style={{ padding: '10px 20px', background: '#f59e0b', color: 'white', border: 'none', borderRadius: '6px', fontWeight: '600', cursor: procesandoAccion ? 'not-allowed' : 'pointer', opacity: procesandoAccion ? 0.7 : 1 }}
+              >
                 Solicitar Información Adicional
               </button>
-              <button style={{ padding: '10px 20px', background: '#00a8ff', color: 'white', border: 'none', borderRadius: '6px', fontWeight: '600', cursor: 'pointer' }}>
-                Firmar y Enviar a Supervisor
+
+              <button
+                onClick={() => ejecutarAccionAgente('supervisor', numeroTicketReal)}
+                disabled={procesandoAccion}
+                style={{ padding: '10px 20px', background: '#00a8ff', color: 'white', border: 'none', borderRadius: '6px', fontWeight: '600', cursor: procesandoAccion ? 'not-allowed' : 'pointer', opacity: procesandoAccion ? 0.7 : 1 }}
+              >
+                Confirmar y Enviar (Traslado a Supervisor)
               </button>
             </div>
           </div>

@@ -30,10 +30,10 @@ public class EmailServicio {
 
             // Enviar el correo
             mailSender.send(mensaje);
-            System.out.println("📧 Correo enviado exitosamente vía Gmail a: " + destinatario);
+            System.out.println("Correo enviado exitosamente a: " + destinatario);
 
         } catch (Exception e) {
-            System.err.println("❌ Error al enviar el correo con Gmail: " + e.getMessage());
+            System.err.println("Error al enviar el correo: " + e.getMessage());
             e.printStackTrace();
         }
     }
@@ -58,10 +58,32 @@ public class EmailServicio {
                     "Sistema Automático de Quejas - BCN");
 
             mailSender.send(mensaje);
-            System.out.println("📧 Correo de asignación enviado exitosamente al agente: " + correoAgente);
+            System.out.println("Correo de asignación enviado exitosamente al agente: " + correoAgente);
 
         } catch (Exception e) {
-            System.err.println("❌ Error al enviar el correo al agente: " + e.getMessage());
+            System.err.println("Error al enviar el correo al agente: " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
+
+    public void enviarCorreoSolicitudInformacion(String destinatario, String numeroTicket, String justificacion) {
+        try {
+            org.springframework.mail.SimpleMailMessage mensaje = new org.springframework.mail.SimpleMailMessage();
+            mensaje.setFrom("bncnoreplyinfo@gmail.com");
+            mensaje.setTo(destinatario);
+            mensaje.setSubject("Información Adicional Requerida - Ticket: " + numeroTicket);
+            mensaje.setText("Estimado cliente,\n\n"
+                    + "Para continuar con el análisis de su queja con ticket " + numeroTicket + ", "
+                    + "necesitamos que nos proporcione la siguiente información o documentación adicional:\n\n"
+                    + "\"" + justificacion + "\"\n\n"
+                    + "Por favor, ingrese al portal de quejas para adjuntar lo solicitado.\n\n"
+                    + "Atentamente,\n"
+                    + "Banco Capital Nacional, S.A. (BCN)");
+
+            mailSender.send(mensaje);
+            System.out.println("Correo enviado exitosamente a: " + destinatario);
+        } catch (Exception e) {
+            System.err.println("Error al enviar correo de solicitud de información: " + e.getMessage());
             e.printStackTrace();
         }
     }

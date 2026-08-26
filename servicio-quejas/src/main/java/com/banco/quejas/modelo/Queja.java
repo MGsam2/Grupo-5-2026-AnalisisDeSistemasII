@@ -37,9 +37,17 @@ public class Queja {
     @Column(updatable = false)
     private LocalDateTime fechaCreacion;
 
-    // Correo del Agente Bancario asignado automáticamente por el sistema
     @Column(name = "agente_asignado_email")
     private String agenteAsignadoEmail;
+
+    @Column(name = "usuario_nombre")
+    private String usuarioNombre;
+
+    @Column(name = "usuario_apellido")
+    private String usuarioApellido;
+
+    @Column(name = "resolucion_agente", columnDefinition = "TEXT")
+    private String resolucionAgente;
 
     @PrePersist
     protected void onCreate() {
@@ -119,5 +127,29 @@ public class Queja {
 
     public void setAgenteAsignadoEmail(String agenteAsignadoEmail) {
         this.agenteAsignadoEmail = agenteAsignadoEmail;
+    }
+
+    public String getUsuarioNombre() {
+        return usuarioNombre;
+    }
+
+    public void setUsuarioNombre(String usuarioNombre) {
+        this.usuarioNombre = usuarioNombre;
+    }
+
+    public String getUsuarioApellido() {
+        return usuarioApellido;
+    }
+
+    public void setUsuarioApellido(String usuarioApellido) {
+        this.usuarioApellido = usuarioApellido;
+    }
+
+    public String getResolucionAgente() {
+        return resolucionAgente;
+    }
+
+    public void setResolucionAgente(String resolucionAgente) {
+        this.resolucionAgente = resolucionAgente;
     }
 }

@@ -68,6 +68,17 @@ function Portal({ onLogout }) {
     cargarMisEstadisticas();
   }, []);
 
+  const nombreUsuario = localStorage.getItem('nombreCliente') || '';
+  const apellidoUsuario = localStorage.getItem('apellidoCliente') || '';
+
+  // Formateamos el nombre completo (si no hay datos, cae por defecto a 'Mi Perfil')
+  const nombreParaMostrar = nombreUsuario || apellidoUsuario
+    ? `${nombreUsuario} ${apellidoUsuario}`.trim()
+    : 'Mi Perfil';
+
+  // Calculamos las iniciales para el Avatar (ej. "Juan Pérez" -> "JP")
+  const iniciales = (nombreUsuario.charAt(0) + apellidoUsuario.charAt(0)).toUpperCase() || 'MI';
+
   return (
     <div className="portal-layout">
 
@@ -133,8 +144,12 @@ function Portal({ onLogout }) {
           </div>
 
           <div className="user-profile">
-            <div className="avatar" style={{ fontSize: '13px', fontWeight: 'bold', color: '#64748b' }}>MI</div>
-            <span>Mi Perfil</span>
+            <div className="avatar" style={{ fontSize: '13px', fontWeight: 'bold', color: '#64748b' }}>
+              {iniciales}
+            </div>
+            <span style={{ textTransform: 'capitalize' }}>
+              {nombreParaMostrar}
+            </span>
           </div>
         </header>
 

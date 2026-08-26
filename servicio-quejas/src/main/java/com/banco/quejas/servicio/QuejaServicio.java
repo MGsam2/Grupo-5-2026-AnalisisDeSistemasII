@@ -41,7 +41,7 @@ public class QuejaServicio {
                 queja.setEstado(estadoEnValidacion);
             }
 
-            System.out.println("✅ Asignación exitosa. Queja asignada al agente: " + agenteIdeal);
+            System.out.println("Asignación exitosa. Queja asignada al agente: " + agenteIdeal);
         } else {
             // Si la consulta devuelve null (ej. todos inactivos o no hay agentes
             // registrados),
@@ -51,24 +51,37 @@ public class QuejaServicio {
                 queja.setEstado(estadoPendiente);
             }
 
-            System.out.println("⚠️ No hay agentes activos. La queja quedó en PendienteDeAsignacion.");
+            System.out.println("No hay agentes activos. La queja quedó en PendienteDeAsignacion.");
         }
 
         // 2. Guardar la queja en la base de datos para generar su ID
         Queja quejaGuardada = quejaRepositorio.save(queja);
 
         // 3. Cumplimiento CU02: Registrar en la Bitácora de Quejas
-        try {
+       try {
+            String estadoAnterior = "Ninguno (Nueva Queja)";
+            String estadoNuevo = quejaGuardada.getEstado().getNombre();
+            
+            // Evaluamos la descripción del evento según el Flujo Normal o el FA01
+            String descripcion;
+            if (agenteIdeal != null) {
+                descripcion = "Flujo Normal: Asignación automática por balanceador al agente " + agenteIdeal;
+            } else {
+                descripcion = "FA01: No hay agentes activos. La queja pasa a cola de espera.";
+            }
+
             com.banco.quejas.modelo.BitacoraQueja registroBitacora = new com.banco.quejas.modelo.BitacoraQueja(
                     usuarioEmail,
                     quejaGuardada.getId(),
-                    quejaGuardada.getEstado().getNombre(),
-                    java.time.LocalDateTime.now());
+                    estadoAnterior,
+                    estadoNuevo,
+                    descripcion,
+                    java.time.LocalDateTime.now()
+            );
             bitacoraQuejaRepositorio.save(registroBitacora);
-            System.out.println("📝 Bitácora actualizada: Queja " + quejaGuardada.getId() + " registrada con estado "
-                    + quejaGuardada.getEstado().getNombre());
+            System.out.println("Bitácora CU03 actualizada: " + descripcion);
         } catch (Exception e) {
-            System.err.println("⚠️ Error al guardar en la bitácora de quejas: " + e.getMessage());
+            System.err.println("Error al guardar en la bitácora CU03: " + e.getMessage());
         }
 
         // 4. Retornar la queja ya guardada con todos sus datos

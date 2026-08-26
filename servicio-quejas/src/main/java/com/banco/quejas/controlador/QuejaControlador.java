@@ -8,6 +8,7 @@ import com.banco.quejas.modelo.Queja;
 import com.banco.quejas.repositorio.DocumentoRepositorio;
 import com.banco.quejas.repositorio.EstadoQuejaRepositorio;
 import com.banco.quejas.repositorio.ProductoRepositorio;
+import com.banco.quejas.repositorio.BitacoraQuejaRepositorio;
 import com.banco.quejas.servicio.QuejaServicio;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -51,13 +52,18 @@ public class QuejaControlador {
     @Autowired
     private QuejaRepositorio quejaRepositorio;
 
+    @Autowired
+    private BitacoraQuejaRepositorio bitacoraQuejaRepositorio;
+
     private final String UPLOAD_DIR = "uploads/";
 
     @PostMapping
     public ResponseEntity crearQueja(
             @RequestParam("titulo") String titulo,
             @RequestParam("descripcion") String descripcion,
-            @RequestParam("productoId") Long productoId, // RN06: Requerimos el producto seleccionado
+            @RequestParam("productoId") Long productoId,
+            @RequestParam(value = "usuarioNombre", defaultValue = "") String usuarioNombre,
+            @RequestParam(value = "usuarioApellido", defaultValue = "") String usuarioApellido,
             @RequestParam(value = "archivo", required = false) MultipartFile archivo,
             @RequestHeader("Authorization") String authHeader) {
 
@@ -91,6 +97,8 @@ public class QuejaControlador {
             nuevaQueja.setDescripcion(descripcion);
             nuevaQueja.setProducto(producto);
             nuevaQueja.setEstado(estadoInicial);
+            nuevaQueja.setUsuarioNombre(usuarioNombre);
+            nuevaQueja.setUsuarioApellido(usuarioApellido);
 
             Queja quejaGuardada = quejaServicio.crearQueja(nuevaQueja, emailUsuario);
 
@@ -177,8 +185,8 @@ public class QuejaControlador {
 
             // 2. REGLA DE NEGOCIO: ¿Es el creador de la queja o el agente asignado?
             boolean esElCreador = queja.getUsuarioEmail().equals(emailUsuario);
-            boolean esElAgenteAsignado = queja.getAgenteAsignadoEmail() != null && 
-                                         queja.getAgenteAsignadoEmail().equals(emailUsuario);
+            boolean esElAgenteAsignado = queja.getAgenteAsignadoEmail() != null &&
+                    queja.getAgenteAsignadoEmail().equals(emailUsuario);
 
             // Si no es ninguno de los dos, se bloquea el acceso
             if (!esElCreador && !esElAgenteAsignado) {
@@ -213,8 +221,12 @@ public class QuejaControlador {
             Documento documento = documentoRepositorio.findById(documentoId)
                     .orElseThrow(() -> new Exception("Documento no encontrado"));
 
-            // 2. Validar seguridad: que el documento pertenezca al usuario que lo solicita
-            if (!documento.getQueja().getUsuarioEmail().equals(emailUsuario)) {
+            boolean esElCreador = documento.getQueja().getUsuarioEmail().equals(emailUsuario);
+            boolean esElAgenteAsignado = documento.getQueja().getAgenteAsignadoEmail() != null &&
+                    documento.getQueja().getAgenteAsignadoEmail().equals(emailUsuario);
+
+            // Si no es ninguno de los dos, bloqueamos el acceso
+            if (!esElCreador && !esElAgenteAsignado) {
                 return ResponseEntity.status(403).build(); // Acceso denegado
             }
 
@@ -270,6 +282,105 @@ public class QuejaControlador {
         ObjectMapper mapper = new ObjectMapper();
         JsonNode payloadJson = mapper.readTree(payload);
         return payloadJson.get("sub").asText();
+    }
+
+    // ==========================================
+    // CU04: BOTÓN "CONFIRMAR Y ENVIAR AL SUPERVISOR"
+    // ==========================================
+    @PutMapping("/{numeroTicket}/enviar-supervisor")
+    public ResponseEntity<?> enviarASupervisor(
+            @PathVariable String numeroTicket,
+            @RequestBody java.util.Map<String, String> payload,
+            @RequestHeader("Authorization") String authHeader) {
+        try {
+            String emailAgente = extraerEmailDelToken(authHeader);
+            String resolucion = payload.get("resolucion");
+
+            // FA08: Validar campo vacío
+            if (resolucion == null || resolucion.trim().isEmpty()) {
+                return ResponseEntity.badRequest().body("Completa este campo.");
+            }
+
+            Queja queja = quejaServicio.obtenerQuejaPorTicket(numeroTicket);
+            if (queja == null)
+                return ResponseEntity.notFound().build();
+
+            String estadoAnterior = queja.getEstado().getNombre();
+
+            // Buscar nuevo estado (⚠️ Asegúrate de que el nombre coincida exactamente con
+            // tu BD)
+            EstadoQueja estadoNuevo = estadoQuejaRepositorio.findByNombre("EnRevisionSupervisor");
+            if (estadoNuevo == null)
+                throw new Exception("El estado no existe en el catálogo.");
+
+            queja.setEstado(estadoNuevo);
+            queja.setResolucionAgente(resolucion);
+            quejaRepositorio.save(queja); // Guardamos los cambios
+
+            // Guardar en la bitácora
+            com.banco.quejas.modelo.BitacoraQueja bitacora = new com.banco.quejas.modelo.BitacoraQueja(
+                    emailAgente, queja.getId(), estadoAnterior, estadoNuevo.getNombre(),
+                    "Traslado a Supervisor. Resolución redactada: " + resolucion, java.time.LocalDateTime.now());
+            bitacoraQuejaRepositorio.save(bitacora);
+
+            return ResponseEntity
+                    .ok(java.util.Map.of("mensaje", "La resolución ha sido enviada al Supervisor Correctamente"));
+
+        } catch (Exception e) {
+            // FA06: Error al trasladar la queja
+            return ResponseEntity.status(500).body("Error al trasladar la queja: " + e.getMessage());
+        }
+    }
+
+    // ==========================================
+    // CU04: BOTÓN "SOLICITAR INFORMACIÓN ADICIONAL" (FA03)
+    // ==========================================
+    @PutMapping("/{numeroTicket}/solicitar-info")
+    public ResponseEntity<?> solicitarInformacion(
+            @PathVariable String numeroTicket,
+            @RequestBody java.util.Map<String, String> payload,
+            @RequestHeader("Authorization") String authHeader) {
+        try {
+            String emailAgente = extraerEmailDelToken(authHeader);
+            String justificacion = payload.get("justificacion");
+
+            // FA08: Validar campo vacío
+            if (justificacion == null || justificacion.trim().isEmpty()) {
+                return ResponseEntity.badRequest().body("Completa este campo.");
+            }
+
+            Queja queja = quejaServicio.obtenerQuejaPorTicket(numeroTicket);
+            if (queja == null)
+                return ResponseEntity.notFound().build();
+
+            String estadoAnterior = queja.getEstado().getNombre();
+
+            // Buscar nuevo estado (⚠️ Asegúrate de que el nombre coincida exactamente con
+            // tu BD)
+            EstadoQueja estadoNuevo = estadoQuejaRepositorio.findByNombre("EsperandoDocumentacion");
+            if (estadoNuevo == null)
+                throw new Exception("El estado no existe en el catálogo.");
+
+            queja.setEstado(estadoNuevo);
+            queja.setResolucionAgente("Info solicitada: " + justificacion);
+            quejaRepositorio.save(queja);
+
+            // Guardar en la bitácora
+            com.banco.quejas.modelo.BitacoraQueja bitacora = new com.banco.quejas.modelo.BitacoraQueja(
+                    emailAgente, queja.getId(), estadoAnterior, estadoNuevo.getNombre(),
+                    "Solicitud de información adicional. Motivo: " + justificacion, java.time.LocalDateTime.now());
+            bitacoraQuejaRepositorio.save(bitacora);
+
+            // Notificar al cliente
+            emailServicio.enviarCorreoSolicitudInformacion(queja.getUsuarioEmail(), queja.getNumeroTicket(),
+                    justificacion);
+
+            return ResponseEntity.ok(java.util.Map.of("mensaje",
+                    "La solicitud de información adicional ha sido enviada correctamente."));
+
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body("Error interno: " + e.getMessage());
+        }
     }
 
 }
