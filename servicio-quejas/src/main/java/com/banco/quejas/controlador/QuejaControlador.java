@@ -2,6 +2,7 @@ package com.banco.quejas.controlador;
 
 import com.banco.quejas.modelo.Documento;
 import com.banco.quejas.modelo.EstadoQueja;
+import com.banco.quejas.modelo.MensajeQueja;
 import com.banco.quejas.repositorio.QuejaRepositorio;
 import com.banco.quejas.modelo.Producto;
 import com.banco.quejas.modelo.Queja;
@@ -9,6 +10,7 @@ import com.banco.quejas.repositorio.DocumentoRepositorio;
 import com.banco.quejas.repositorio.EstadoQuejaRepositorio;
 import com.banco.quejas.repositorio.ProductoRepositorio;
 import com.banco.quejas.repositorio.BitacoraQuejaRepositorio;
+import com.banco.quejas.repositorio.MensajeQuejaRepositorio;
 import com.banco.quejas.servicio.QuejaServicio;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -54,6 +56,9 @@ public class QuejaControlador {
 
     @Autowired
     private BitacoraQuejaRepositorio bitacoraQuejaRepositorio;
+
+    @Autowired
+    private MensajeQuejaRepositorio mensajeQuejaRepositorio;
 
     private final String UPLOAD_DIR = "uploads/";
 
@@ -307,7 +312,7 @@ public class QuejaControlador {
 
             String estadoAnterior = queja.getEstado().getNombre();
 
-            // Buscar nuevo estado (⚠️ Asegúrate de que el nombre coincida exactamente con
+            // Buscar nuevo estado (Asegúrate de que el nombre coincida exactamente con
             // tu BD)
             EstadoQueja estadoNuevo = estadoQuejaRepositorio.findByNombre("EnRevisionSupervisor");
             if (estadoNuevo == null)
@@ -322,6 +327,16 @@ public class QuejaControlador {
                     emailAgente, queja.getId(), estadoAnterior, estadoNuevo.getNombre(),
                     "Traslado a Supervisor. Resolución redactada: " + resolucion, java.time.LocalDateTime.now());
             bitacoraQuejaRepositorio.save(bitacora);
+
+            // ---> LO NUEVO: Mensaje automático para el cliente <---
+            MensajeQueja mensajeAvance = new MensajeQueja(
+                    queja,
+                    emailAgente,
+                    "AGENTE", // Usamos AGENTE para que el frontend lo pinte con el mismo estilo
+                    "Se valida la información y está correcta, la queja avanza a la siguiente fase.",
+                    java.time.LocalDateTime.now());
+            mensajeQuejaRepositorio.save(mensajeAvance);
+            // ---------------------------------------------------------
 
             return ResponseEntity
                     .ok(java.util.Map.of("mensaje", "La resolución ha sido enviada al Supervisor Correctamente"));
@@ -365,6 +380,11 @@ public class QuejaControlador {
             queja.setResolucionAgente("Info solicitada: " + justificacion);
             quejaRepositorio.save(queja);
 
+            // Guardamos la petición del agente como el primer mensaje del historial
+            MensajeQueja mensajeAgente = new MensajeQueja(
+                    queja, emailAgente, "AGENTE", justificacion, java.time.LocalDateTime.now());
+            mensajeQuejaRepositorio.save(mensajeAgente);
+
             // Guardar en la bitácora
             com.banco.quejas.modelo.BitacoraQueja bitacora = new com.banco.quejas.modelo.BitacoraQueja(
                     emailAgente, queja.getId(), estadoAnterior, estadoNuevo.getNombre(),
@@ -380,6 +400,130 @@ public class QuejaControlador {
 
         } catch (Exception e) {
             return ResponseEntity.status(500).body("Error interno: " + e.getMessage());
+        }
+    }
+
+    // ==========================================
+    // NUEVO: RESPUESTA DEL CLIENTE CON MÁS INFORMACIÓN
+    // ==========================================
+    @PostMapping("/{numeroTicket}/responder")
+    public ResponseEntity<?> responderSolicitud(
+            @PathVariable String numeroTicket,
+            @RequestParam("mensaje") String mensaje,
+            @RequestParam(value = "archivo", required = false) org.springframework.web.multipart.MultipartFile archivo,
+            @RequestHeader("Authorization") String authHeader) {
+
+        if (archivo != null && !archivo.isEmpty()) {
+            String tipo = archivo.getContentType();
+            if (tipo == null || (!tipo.equals("application/pdf") && !tipo.equals("image/jpeg"))) {
+                return ResponseEntity.badRequest().body("Error: El documento debe ser en formato PDF o JPEG.");
+            }
+            if (archivo.getSize() > 2097152) { // 2MB en bytes
+                return ResponseEntity.badRequest()
+                        .body("Error: El documento no debe superar el tamaño máximo de 2 MB.");
+            }
+        }
+
+        try {
+            String emailCliente = extraerEmailDelToken(authHeader);
+            Queja queja = quejaServicio.obtenerQuejaPorTicket(numeroTicket);
+
+            if (queja == null || !queja.getUsuarioEmail().equals(emailCliente)) {
+                return ResponseEntity.status(403).body("Acceso denegado.");
+            }
+
+            String estadoAnterior = queja.getEstado().getNombre();
+
+            // 1. Guardar el nuevo documento (si viene uno)
+            if (archivo != null && !archivo.isEmpty()) {
+                java.io.File directorio = new java.io.File(UPLOAD_DIR);
+                if (!directorio.exists())
+                    directorio.mkdirs();
+
+                String nombreOriginal = archivo.getOriginalFilename();
+                String extension = nombreOriginal.substring(nombreOriginal.lastIndexOf("."));
+                String nombreUnico = java.util.UUID.randomUUID().toString() + extension;
+
+                java.nio.file.Path rutaCompleta = java.nio.file.Paths.get(UPLOAD_DIR + nombreUnico);
+                java.nio.file.Files.copy(archivo.getInputStream(), rutaCompleta);
+
+                Documento doc = new Documento();
+                doc.setQueja(queja);
+                doc.setNombreOriginal(nombreOriginal);
+                doc.setTipoArchivo(archivo.getContentType());
+                doc.setTamano(archivo.getSize());
+                doc.setRutaFisica(rutaCompleta.toString());
+                doc.setUsuarioCarga(emailCliente);
+
+                documentoRepositorio.save(doc);
+            }
+
+            // 2. Guardar el mensaje en el "Chat"
+            // (Asegúrate de inyectar MensajeQuejaRepositorio arriba en tu controlador)
+            MensajeQueja nuevoMensaje = new MensajeQueja(
+                    queja, emailCliente, "CLIENTE", mensaje, java.time.LocalDateTime.now());
+            mensajeQuejaRepositorio.save(nuevoMensaje);
+
+            // 3. Regresar la queja a la bandeja del Agente
+            EstadoQueja estadoValidacion = estadoQuejaRepositorio.findByNombre("EnValidacion");
+            queja.setEstado(estadoValidacion);
+            quejaRepositorio.save(queja);
+
+            // 4. Registrar en Bitácora
+            com.banco.quejas.modelo.BitacoraQueja bitacora = new com.banco.quejas.modelo.BitacoraQueja(
+                    emailCliente, queja.getId(), estadoAnterior, "EnValidacion",
+                    "El cliente proporcionó información adicional y adjuntó nueva evidencia.",
+                    java.time.LocalDateTime.now());
+            bitacoraQuejaRepositorio.save(bitacora);
+
+            // Opcional: Notificar al agente asignado que el cliente ya respondió
+            emailServicio.enviarCorreoRespuestaCliente(
+                    queja.getAgenteAsignadoEmail(), queja.getNumeroTicket(),
+                    "Respuesta de cliente recibida: " + mensaje);
+
+            return ResponseEntity.ok(java.util.Map.of("mensaje",
+                    "Información enviada correctamente. Su queja vuelve a estar en revisión."));
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.internalServerError().body("Error al procesar la respuesta: " + e.getMessage());
+        }
+    }
+
+    // ==========================================
+    // NUEVO: OBTENER EL HISTORIAL DE MENSAJES (CHAT)
+    // ==========================================
+    @GetMapping("/{numeroTicket}/mensajes")
+    public ResponseEntity<?> obtenerMensajesQueja(
+            @PathVariable String numeroTicket,
+            @RequestHeader("Authorization") String authHeader) {
+
+        try {
+            String emailUsuario = extraerEmailDelToken(authHeader);
+            Queja queja = quejaServicio.obtenerQuejaPorTicket(numeroTicket);
+
+            if (queja == null) {
+                return ResponseEntity.status(404).body("La queja no existe.");
+            }
+
+            // Validar seguridad: Solo el cliente creador o el agente asignado pueden ver el
+            // chat
+            boolean esElCreador = queja.getUsuarioEmail().equals(emailUsuario);
+            boolean esElAgenteAsignado = queja.getAgenteAsignadoEmail() != null &&
+                    queja.getAgenteAsignadoEmail().equals(emailUsuario);
+
+            if (!esElCreador && !esElAgenteAsignado) {
+                return ResponseEntity.status(403).body("Acceso denegado al historial.");
+            }
+
+            // Llamamos a la base de datos para traer el historial ordenado
+            List<MensajeQueja> historial = mensajeQuejaRepositorio.findByQuejaIdOrderByFechaHoraAsc(queja.getId());
+
+            return ResponseEntity.ok(historial);
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.internalServerError().body("Error al obtener el historial de mensajes");
         }
     }
 

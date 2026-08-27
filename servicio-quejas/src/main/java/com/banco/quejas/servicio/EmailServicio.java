@@ -88,4 +88,26 @@ public class EmailServicio {
         }
     }
 
+    public void enviarCorreoRespuestaCliente(String destinatario, String numeroTicket, String mensaje) {
+        try {
+            org.springframework.mail.SimpleMailMessage mensajen = new org.springframework.mail.SimpleMailMessage();
+            mensajen.setFrom("bncnoreplyinfo@gmail.com");
+            mensajen.setTo(destinatario);
+            mensajen.setSubject("Respuesta del Cliente - Ticket: " + numeroTicket);
+            mensajen.setText("Estimado Agente,\n\n"
+                    + "Para continuar con el análisis de la queja con ticket " + numeroTicket + ", "
+                    + "el cliente brindo la siguiente información:\n\n"
+                    + "\"" + mensaje + "\"\n\n"
+                    + "Por favor, ingrese al portal de quejas para continuar con el proceso de resolución.\n\n"
+                    + "Atentamente,\n"
+                    + "Banco Capital Nacional, S.A. (BCN)");
+
+            mailSender.send(mensajen);
+            System.out.println("Correo enviado exitosamente a: " + destinatario);
+        } catch (Exception e) {
+            System.err.println("Error al enviar correo de solicitud de información: " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
+
 }

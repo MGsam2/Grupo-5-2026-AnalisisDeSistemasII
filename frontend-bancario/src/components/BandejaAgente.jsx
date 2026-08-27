@@ -1,10 +1,13 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import HistorialMensajes from './HistorialMensajes';
 
 function BandejaAgente({ onLogout }) {
   const [quejas, setQuejas] = useState([]);
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState(null);
+
+
 
   // Estados para la vista de detalle
   const [detalleActivo, setDetalleActivo] = useState(null);
@@ -14,6 +17,10 @@ function BandejaAgente({ onLogout }) {
   const [resolucion, setResolucion] = useState('');
   const [mensajeAccion, setMensajeAccion] = useState({ texto: '', tipo: '' });
   const [procesandoAccion, setProcesandoAccion] = useState(false);
+  const [accionCompletada, setAccionCompletada] = useState(false);
+
+  //refrescar chat
+  const [refreshHistorial, setRefreshHistorial] = useState(0);
 
   const navigate = useNavigate();
 
@@ -93,6 +100,7 @@ function BandejaAgente({ onLogout }) {
     setError(null);
     setResolucion('');
     setMensajeAccion({ texto: '', tipo: '' });
+    setAccionCompletada(false);
 
     const token = obtenerToken();
     const urlConsulta = `/api/quejas/${numeroTicket}`;
@@ -189,13 +197,29 @@ function BandejaAgente({ onLogout }) {
         // Si el backend envía el JSON exacto de éxito
         const data = await respuesta.json();
         setMensajeAccion({ texto: data.mensaje, tipo: 'exito' });
+        setResolucion('');
 
-        // Regresamos al agente al listado después de 2.5 segundos para que vea el éxito
-        setTimeout(() => {
-          setDetalleActivo(null);
-          cargarListado();
-        }, 2500);
+        setAccionCompletada(true);
 
+        if (tipoAccion === 'info') {
+          // Si pidió info, recargamos el chat y actualizamos el estado visual a Esperando Documentación
+          setRefreshHistorial(prev => prev + 1);
+          setDetalleActivo(prev => ({
+            ...prev,
+            queja: { ...prev.queja, estado: 'EsperandoDocumentacion' }
+          }));
+        } else {
+          // Simulamos localmente el cambio de estado antes de recargar para que se bloquee de inmediato
+          setDetalleActivo(prev => ({
+            ...prev,
+            queja: { ...prev.queja, estado: 'EnRevisionSupervisor' }
+          }));
+          // Si lo mandó al supervisor, lo sacamos al listado en 2.5s
+          setTimeout(() => {
+            setDetalleActivo(null);
+            cargarListado();
+          }, 2500);
+        }
       } else if (respuesta.status === 400) {
         // Flujo alterno FA08: Resolución Incompleta u otro 400
         const errorMsg = await respuesta.text();
@@ -239,6 +263,11 @@ function BandejaAgente({ onLogout }) {
     const nombreCompleto = (queja.usuarioNombre || queja.usuarioApellido)
       ? `${queja.usuarioNombre || ''} ${queja.usuarioApellido || ''}`.trim()
       : (`Nombre: ${queja.clienteNombre}`);
+    const estadoTicketLimpiado = estadoTexto.replace(/\s+/g, '');
+
+    const bloqueadoPorEstado = estadoTicketLimpiado !== 'EnValidacion';
+    // El bloqueo total considera tanto la petición actual como el estado del ticket
+    const controlesBloqueados = procesandoAccion || accionCompletada || bloqueadoPorEstado;
 
     return (
       <div style={{ padding: '30px', backgroundColor: '#f8fafc', minHeight: '100vh' }}>
@@ -247,7 +276,7 @@ function BandejaAgente({ onLogout }) {
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '25px', borderBottom: '1px solid #e2e8f0', paddingBottom: '15px' }}>
             <h2 style={{ margin: 0, color: '#0f172a' }}>Revisión de Caso #{numeroTicketReal}</h2>
             <button
-              onClick={() => setDetalleActivo(null)}
+              onClick={() => { setDetalleActivo(null); cargarListado(); }}
               style={{ padding: '8px 16px', background: 'transparent', border: '1px solid #cbd5e1', borderRadius: '6px', cursor: 'pointer' }}
             >
               ← Volver a la Bandeja
@@ -305,6 +334,12 @@ function BandejaAgente({ onLogout }) {
             )}
           </div>
 
+          {/* HISTORIAL DE MENSAJES */}
+          <HistorialMensajes
+            numeroTicket={numeroTicketReal}
+            refreshTrigger={refreshHistorial}
+          />
+
           {/* ÁREA DE GESTIÓN DEL AGENTE */}
           <div style={{ borderTop: '2px dashed #cbd5e1', paddingTop: '20px', marginTop: '20px' }}>
             <h3 style={{ fontSize: '1.2rem', color: '#0f172a', marginBottom: '15px' }}>Gestión del Agente</h3>
@@ -313,9 +348,14 @@ function BandejaAgente({ onLogout }) {
             <textarea
               value={resolucion}
               onChange={(e) => setResolucion(e.target.value)}
-              placeholder="Redacte su análisis, propuesta de resolucion o requerimiento aquí..."
+              placeholder={
+                bloqueadoPorEstado
+                  ? `El ticket está en estado "${estadoTexto}". No se admiten nuevas resoluciones.`
+                  : "Redacte su análisis, propuesta o requerimiento aquí..."
+              }
               rows="4"
               style={{ width: '100%', padding: '12px', borderRadius: '6px', border: '1px solid #cbd5e1', marginBottom: '15px', fontFamily: 'inherit', resize: 'vertical' }}
+              disabled={controlesBloqueados}
             ></textarea>
 
             {/* MENSAJES DE ESTADO DE LA ACCIÓN */}
@@ -333,16 +373,16 @@ function BandejaAgente({ onLogout }) {
             <div style={{ display: 'flex', gap: '15px' }}>
               <button
                 onClick={() => ejecutarAccionAgente('info', numeroTicketReal)}
-                disabled={procesandoAccion}
-                style={{ padding: '10px 20px', background: '#f59e0b', color: 'white', border: 'none', borderRadius: '6px', fontWeight: '600', cursor: procesandoAccion ? 'not-allowed' : 'pointer', opacity: procesandoAccion ? 0.7 : 1 }}
+                disabled={controlesBloqueados}
+                style={{ padding: '10px 20px', background: '#f59e0b', color: 'white', border: 'none', borderRadius: '6px', fontWeight: '600', cursor: controlesBloqueados ? 'not-allowed' : 'pointer', opacity: controlesBloqueados ? 0.7 : 1 }}
               >
                 Solicitar Información Adicional
               </button>
 
               <button
                 onClick={() => ejecutarAccionAgente('supervisor', numeroTicketReal)}
-                disabled={procesandoAccion}
-                style={{ padding: '10px 20px', background: '#00a8ff', color: 'white', border: 'none', borderRadius: '6px', fontWeight: '600', cursor: procesandoAccion ? 'not-allowed' : 'pointer', opacity: procesandoAccion ? 0.7 : 1 }}
+                disabled={controlesBloqueados}
+                style={{ padding: '10px 20px', background: '#00a8ff', color: 'white', border: 'none', borderRadius: '6px', fontWeight: '600', cursor: controlesBloqueados ? 'not-allowed' : 'pointer', opacity: controlesBloqueados ? 0.7 : 1 }}
               >
                 Confirmar y Enviar (Traslado a Supervisor)
               </button>
