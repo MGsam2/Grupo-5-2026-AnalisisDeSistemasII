@@ -49,6 +49,9 @@ public class Queja {
     @Column(name = "resolucion_agente", columnDefinition = "TEXT")
     private String resolucionAgente;
 
+    @Column(name = "observaciones_supervisor", columnDefinition = "TEXT")
+    private String observacionesSupervisor;
+
     @PrePersist
     protected void onCreate() {
         this.fechaCreacion = LocalDateTime.now();
@@ -151,5 +154,13 @@ public class Queja {
 
     public void setResolucionAgente(String resolucionAgente) {
         this.resolucionAgente = resolucionAgente;
+    }
+
+    public String getObservacionesSupervisor() {
+        return observacionesSupervisor;
+    }
+
+    public void setObservacionesSupervisor(String observacionesSupervisor) {
+        this.observacionesSupervisor = observacionesSupervisor;
     }
 }

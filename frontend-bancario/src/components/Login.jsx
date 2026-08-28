@@ -42,6 +42,8 @@ function Login() {
           navigate('/bandeja-agente');
         } else if (rolRecibido.includes('ADMIN')) {
           navigate('/admin-dashboard');
+        } else if (rolRecibido.includes('SUPERVISOR')) {
+          navigate('/bandeja-supervisor');
         } else {
           console.warn("Rol recibido desde Spring Boot:", data.rol);
           setMensaje({ texto: `Rol recibido (${data.rol}) no tiene un portal asignado aún.`, tipo: 'error' });

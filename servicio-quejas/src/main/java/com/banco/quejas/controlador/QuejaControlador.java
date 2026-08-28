@@ -193,8 +193,12 @@ public class QuejaControlador {
             boolean esElAgenteAsignado = queja.getAgenteAsignadoEmail() != null &&
                     queja.getAgenteAsignadoEmail().equals(emailUsuario);
 
+            String tokenPayload = new String(
+                    java.util.Base64.getUrlDecoder().decode(authHeader.replace("Bearer ", "").split("\\.")[1]));
+            boolean esSupervisor = tokenPayload.toUpperCase().contains("SUPERVISOR");
+
             // Si no es ninguno de los dos, se bloquea el acceso
-            if (!esElCreador && !esElAgenteAsignado) {
+            if (!esElCreador && !esElAgenteAsignado && !esSupervisor) {
                 return ResponseEntity.status(403).body("Acceso denegado o la queja no existe.");
             }
 
@@ -230,8 +234,12 @@ public class QuejaControlador {
             boolean esElAgenteAsignado = documento.getQueja().getAgenteAsignadoEmail() != null &&
                     documento.getQueja().getAgenteAsignadoEmail().equals(emailUsuario);
 
+            String tokenPayload = new String(
+                    java.util.Base64.getUrlDecoder().decode(authHeader.replace("Bearer ", "").split("\\.")[1]));
+            boolean esSupervisor = tokenPayload.toUpperCase().contains("SUPERVISOR");
+
             // Si no es ninguno de los dos, bloqueamos el acceso
-            if (!esElCreador && !esElAgenteAsignado) {
+            if (!esElCreador && !esElAgenteAsignado && !esSupervisor) {
                 return ResponseEntity.status(403).build(); // Acceso denegado
             }
 
@@ -482,7 +490,7 @@ public class QuejaControlador {
                     "Respuesta de cliente recibida: " + mensaje);
 
             return ResponseEntity.ok(java.util.Map.of("mensaje",
-                    "Información enviada correctamente. Su queja vuelve a estar en revisión."));
+                    "Información enviada correctamente."));
 
         } catch (Exception e) {
             e.printStackTrace();
@@ -524,6 +532,163 @@ public class QuejaControlador {
         } catch (Exception e) {
             e.printStackTrace();
             return ResponseEntity.internalServerError().body("Error al obtener el historial de mensajes");
+        }
+    }
+
+    // =======================================================
+    // CU05: 1. LISTAR QUEJAS DEL SUPERVISOR (FNB 1.3.4 y FA01)
+    // =======================================================
+    @GetMapping("/supervisor/pendientes")
+    public ResponseEntity<?> obtenerQuejasParaSupervisor(@RequestHeader("Authorization") String authHeader) {
+        try {
+            // Buscamos el estado exacto en la BD
+            EstadoQueja estado = estadoQuejaRepositorio.findByNombre("EnRevisionSupervisor");
+            if (estado == null) {
+                return ResponseEntity.ok(java.util.Collections.emptyList());
+            }
+
+            // Traemos las quejas
+            List<Queja> quejasPendientes = quejaRepositorio.findByEstado(estado);
+
+            // Si quieres puedes validar si la lista está vacía para el FA01 desde aquí,
+            // aunque usualmente React maneja el mensaje "No existen quejas" si recibe un
+            // array vacío [].
+            return ResponseEntity.ok(quejasPendientes);
+
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body("Error al obtener las quejas del supervisor");
+        }
+    }
+
+    // =======================================================
+    // CU05: ESTADÍSTICAS DEL SUPERVISOR (FNB 1.3.1)
+    // =======================================================
+    @GetMapping("/supervisor/estadisticas")
+    public ResponseEntity<?> obtenerEstadisticasSupervisor(@RequestHeader("Authorization") String authHeader) {
+        try {
+            // Buscamos cuántas quejas hay en revisión
+            EstadoQueja estadoRevision = estadoQuejaRepositorio.findByNombre("EnRevisionSupervisor");
+            long pendientes = (estadoRevision != null) ? quejaRepositorio.findByEstado(estadoRevision).size() : 0;
+
+            // Puedes agregar más contadores en el futuro aquí
+            return ResponseEntity.ok(java.util.Map.of(
+                    "pendientesDeRevision", pendientes,
+                    "mensajeBienvenida", "¡Bienvenido! Tienes " + pendientes + " quejas pendientes de revisión."));
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body("Error al obtener estadísticas");
+        }
+    }
+
+    // =======================================================
+    // CU05: 2. BOTÓN "CONFIRMAR Y ENVIAR AL JEFE" (FNB 1.3.15)
+    // =======================================================
+    @PutMapping("/{numeroTicket}/enviar-jefe")
+    public ResponseEntity<?> enviarAJefe(
+            @PathVariable String numeroTicket,
+            @RequestBody java.util.Map<String, String> payload,
+            @RequestHeader("Authorization") String authHeader) {
+        try {
+            String emailSupervisor = extraerEmailDelToken(authHeader);
+            String observaciones = payload.get("observaciones");
+
+            // FA05: Validar campo vacío
+            if (observaciones == null || observaciones.trim().isEmpty()) {
+                return ResponseEntity.badRequest().body("Debe ingresar un texto antes de enviar.");
+            }
+
+            Queja queja = quejaServicio.obtenerQuejaPorTicket(numeroTicket);
+            if (queja == null)
+                return ResponseEntity.notFound().build();
+
+            String estadoAnterior = queja.getEstado().getNombre();
+
+            // Buscar nuevo estado (⚠️ Verifica que esté escrito así en tu tabla de estados)
+            EstadoQueja estadoNuevo = estadoQuejaRepositorio.findByNombre("EnRevisionJefe");
+            if (estadoNuevo == null)
+                throw new Exception("El estado 'EnRevisionJefe' no existe.");
+
+            queja.setEstado(estadoNuevo);
+            queja.setObservacionesSupervisor(observaciones);
+            quejaRepositorio.save(queja);
+
+            // Registro de Bitácora
+            com.banco.quejas.modelo.BitacoraQueja bitacora = new com.banco.quejas.modelo.BitacoraQueja(
+                    emailSupervisor, queja.getId(), estadoAnterior, estadoNuevo.getNombre(),
+                    "Revisión Aprobada. Traslado a Jefe con observaciones: " + observaciones,
+                    java.time.LocalDateTime.now());
+            bitacoraQuejaRepositorio.save(bitacora);
+
+            // Mensaje automático de avance para el chat del Cliente
+            MensajeQueja mensajeAvance = new MensajeQueja(
+                    queja, emailSupervisor, "SUPERVISOR",
+                    "La resolución ha sido validada y avanza a la siguiente etapa.",
+                    java.time.LocalDateTime.now());
+            mensajeQuejaRepositorio.save(mensajeAvance);
+
+            return ResponseEntity.ok(java.util.Map.of("mensaje", "La queja ha sido enviada al Jefe correctamente."));
+
+        } catch (Exception e) {
+            // FA04: Error al trasladar la queja al Jefe
+            return ResponseEntity.status(500).body("No fue posible trasladar la queja al Jefe: " + e.getMessage());
+        }
+    }
+
+    // =======================================================
+    // CU05: 3. BOTÓN "DEVOLVER AL AGENTE" (FA03)
+    // =======================================================
+    @PutMapping("/{numeroTicket}/devolver-agente")
+    public ResponseEntity<?> devolverAAgente(
+            @PathVariable String numeroTicket,
+            @RequestBody java.util.Map<String, String> payload,
+            @RequestHeader("Authorization") String authHeader) {
+        try {
+            String emailSupervisor = extraerEmailDelToken(authHeader);
+            String motivo = payload.get("observaciones"); // Reutilizamos el textarea de observaciones
+
+            // FA05: Validar campo vacío
+            if (motivo == null || motivo.trim().isEmpty()) {
+                return ResponseEntity.badRequest().body("Debe ingresar un texto antes de enviar.");
+            }
+
+            Queja queja = quejaServicio.obtenerQuejaPorTicket(numeroTicket);
+            if (queja == null)
+                return ResponseEntity.notFound().build();
+
+            String estadoAnterior = queja.getEstado().getNombre();
+
+            // Buscar nuevo estado (⚠️ Verifica que esté escrito así en tu tabla)
+            EstadoQueja estadoNuevo = estadoQuejaRepositorio.findByNombre("DevueltaParaRevision");
+            if (estadoNuevo == null)
+                throw new Exception("El estado 'DevueltaParaRevision' no existe.");
+
+            queja.setEstado(estadoNuevo);
+            queja.setObservacionesSupervisor("Devuelta: " + motivo);
+            quejaRepositorio.save(queja);
+
+            // FA03: El sistema muestra el motivo en forma de burbuja (Chat)
+            MensajeQueja mensajeDevolucion = new MensajeQueja(
+                    queja, emailSupervisor, "SUPERVISOR",
+                    "Queja devuelta para correcciones obligatorias: " + motivo,
+                    java.time.LocalDateTime.now());
+            mensajeQuejaRepositorio.save(mensajeDevolucion);
+
+            // Registro de Bitácora
+            com.banco.quejas.modelo.BitacoraQueja bitacora = new com.banco.quejas.modelo.BitacoraQueja(
+                    emailSupervisor, queja.getId(), estadoAnterior, estadoNuevo.getNombre(),
+                    "Devuelta al Agente. Motivo: " + motivo,
+                    java.time.LocalDateTime.now());
+            bitacoraQuejaRepositorio.save(bitacora);
+
+            // FA03: Notificar al Agente Bancario
+            emailServicio.enviarCorreoAsignacionAgente(
+                    queja.getAgenteAsignadoEmail(), queja.getNumeroTicket(),
+                    "URGENTE: La queja ha sido devuelta por el Supervisor para correcciones. Motivo: " + motivo);
+
+            return ResponseEntity
+                    .ok(java.util.Map.of("mensaje", "La queja ha sido devuelta al Agente Bancario para su revisión."));
+
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body("Error interno: " + e.getMessage());
         }
     }
 

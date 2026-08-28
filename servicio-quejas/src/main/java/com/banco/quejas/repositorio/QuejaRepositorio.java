@@ -19,6 +19,9 @@ public interface QuejaRepositorio extends JpaRepository<Queja, Long> {
     // NUEVO: Para buscar una queja exacta por su código de ticket (ej. QJ-1234)
     Queja findByNumeroTicket(String numeroTicket);
 
+    // Busca las quejas dependiendo de su estado (ej. "EnRevisionSupervisor")
+    List<Queja> findByEstado(com.banco.quejas.modelo.EstadoQueja estado);
+
     @Query(value = "SELECT u.email " +
             "FROM usuarios u " +
             "INNER JOIN usuario_roles ur ON u.id = ur.usuario_id " +
@@ -34,6 +37,5 @@ public interface QuejaRepositorio extends JpaRepository<Queja, Long> {
     // Busca todas las quejas cuyo estado sea "PendienteDeAsignacion"
     @Query("SELECT q FROM Queja q WHERE q.estado.nombre = 'PendienteDeAsignacion'")
     java.util.List<Queja> encontrarQuejasPendientes();
-
 
 }

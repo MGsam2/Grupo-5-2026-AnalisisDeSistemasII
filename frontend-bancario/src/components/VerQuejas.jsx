@@ -344,6 +344,7 @@ function VerQuejas() {
               <textarea
                 value={mensajeRespuesta}
                 onChange={(e) => setMensajeRespuesta(e.target.value)}
+                maxLength={120}
                 placeholder="Escriba su respuesta detallada aquí..."
                 rows="4"
                 required

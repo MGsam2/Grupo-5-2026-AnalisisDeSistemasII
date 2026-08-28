@@ -1,9 +1,10 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import LandingPage from './components/LandingPage';
 import Login from './components/Login';
-import Portal from './components/Portal'; 
-import BandejaAgente from './components/BandejaAgente'; 
-import PortalAdmin from './components/PortalAdmin'; 
+import Portal from './components/Portal';
+import BandejaAgente from './components/BandejaAgente';
+import PortalAdmin from './components/PortalAdmin';
+import BandejaSupervisor from './components/BandejaSupervisor';
 
 function App() {
   return (
@@ -11,24 +12,29 @@ function App() {
       <Routes>
         {/* La vista principal ahora es la Landing Page */}
         <Route path="/" element={<LandingPage />} />
-        
+
         {/* El login tiene su propia ruta */}
         <Route path="/login" element={<Login />} />
-        
+
         {/* Rutas protegidas por rol */}
         <Route path="/portal-usuario" element={<Portal onLogout={() => {
           localStorage.removeItem('token');
           localStorage.removeItem('rol');
           window.location.href = '/login'; // Redirigimos al login al salir
         }} />} />
-        
+
         {/* Cambia la etiqueta <PortalAgente /> por <BandejaAgente /> */}
         <Route path="/bandeja-agente" element={<BandejaAgente onLogout={() => {
           localStorage.removeItem('token');
           window.location.href = '/login';
         }} />} />
-        
+
         <Route path="/admin-dashboard" element={<PortalAdmin onLogout={() => {
+          localStorage.removeItem('token');
+          window.location.href = '/login';
+        }} />} />
+
+        <Route path="/bandeja-supervisor" element={<BandejaSupervisor onLogout={() => {
           localStorage.removeItem('token');
           window.location.href = '/login';
         }} />} />

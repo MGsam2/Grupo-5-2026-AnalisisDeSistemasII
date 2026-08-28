@@ -144,6 +144,7 @@ function RegistrarQueja() {
             type="text"
             value={titulo}
             onChange={(e) => setTitulo(e.target.value)}
+            maxLength={50}
             placeholder="Asunto breve de su inconveniente"
             required
             style={{ width: '100%', padding: '12px', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '6px', boxSizing: 'border-box' }}
@@ -178,6 +179,7 @@ function RegistrarQueja() {
           <textarea
             value={descripcion}
             onChange={(e) => setDescripcion(e.target.value)}
+            maxLength={120}
             placeholder="Detalle de forma clara el incidente reportado..."
             required
             rows="5"
