@@ -70,6 +70,7 @@ public class QuejaControlador {
             @RequestParam(value = "usuarioNombre", defaultValue = "") String usuarioNombre,
             @RequestParam(value = "usuarioApellido", defaultValue = "") String usuarioApellido,
             @RequestParam(value = "archivo", required = false) MultipartFile archivo,
+            @RequestParam(value = "ticketPadre", required = false) String ticketPadre,
             @RequestHeader("Authorization") String authHeader) {
 
         try {
@@ -104,6 +105,18 @@ public class QuejaControlador {
             nuevaQueja.setEstado(estadoInicial);
             nuevaQueja.setUsuarioNombre(usuarioNombre);
             nuevaQueja.setUsuarioApellido(usuarioApellido);
+
+            if (ticketPadre != null && !ticketPadre.trim().isEmpty()) {
+
+                Queja padre = quejaServicio.obtenerQuejaPorTicket(ticketPadre.trim());
+
+                if (padre == null) {
+                    return ResponseEntity.badRequest()
+                            .body("Error: El número de ticket relacionado no existe.");
+                }
+
+                nuevaQueja.setQuejaPadre(padre);
+            }
 
             Queja quejaGuardada = quejaServicio.crearQueja(nuevaQueja, emailUsuario);
 
@@ -205,10 +218,14 @@ public class QuejaControlador {
             // Buscar los documentos asociados a esta queja
             List<Documento> documentos = documentoRepositorio.findByQuejaId(queja.getId());
 
+            // Buscar si esta queja tiene otras quejas derivadas de ella
+            List<Queja> quejasDerivadas = quejaRepositorio.findByQuejaPadreId(queja.getId());
+
             // Empaquetar la queja y los documentos juntos
             java.util.Map<String, Object> respuesta = new java.util.HashMap<>();
             respuesta.put("queja", queja);
             respuesta.put("documentos", documentos);
+            respuesta.put("quejasRelacionadas", quejasDerivadas);
 
             return ResponseEntity.ok(respuesta);
 

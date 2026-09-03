@@ -144,20 +144,24 @@ function LandingPage() {
               <h3 style={{ fontSize: '2rem', color: '#0f172a', marginBottom: '30px', textAlign: 'center' }}>Portafolio Corporativo</h3>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '25px' }}>
                 <div style={{ backgroundColor: 'white', padding: '30px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
-                  <h4 style={{ color: '#0f172a', fontSize: '1.2rem', margin: '0 0 15px 0' }}>Cuentas Corporativas</h4>
-                  <p style={{ color: '#475569', lineHeight: '1.6', margin: 0 }}>Gestión de liquidez y flujos de pago a proveedores con altos estándares de seguridad y encriptación de datos.</p>
+                  <h4 style={{ color: '#0f172a', fontSize: '1.2rem', margin: '0 0 15px 0' }}>Cuentas de Ahorro</h4>
+                  <p style={{ color: '#475569', lineHeight: '1.6', margin: 0 }}>Haz crecer tus sueños, un ahorro a la vez. Administra tu dinero de forma segura y comienza a construir el futuro que deseas con una cuenta diseñada para acompañarte en cada meta.</p>
                 </div>
                 <div style={{ backgroundColor: 'white', padding: '30px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
-                  <h4 style={{ color: '#0f172a', fontSize: '1.2rem', margin: '0 0 15px 0' }}>Fondos de Inversión</h4>
-                  <p style={{ color: '#475569', lineHeight: '1.6', margin: 0 }}>Portafolios diversificados y estratégicos administrados por expertos financieros internacionales.</p>
+                  <h4 style={{ color: '#0f172a', fontSize: '1.2rem', margin: '0 0 15px 0' }}>Tarjetas de Debito y Credito</h4>
+                  <p style={{ color: '#475569', lineHeight: '1.6', margin: 0 }}>Compra, paga y disfruta con mayor facilidad. Accede a soluciones prácticas y seguras para realizar tus compras y administrar tus finanzas en cualquier momento.</p>
                 </div>
                 <div style={{ backgroundColor: 'white', padding: '30px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
-                  <h4 style={{ color: '#0f172a', fontSize: '1.2rem', margin: '0 0 15px 0' }}>Créditos Empresariales</h4>
-                  <p style={{ color: '#475569', lineHeight: '1.6', margin: 0 }}>Tasas preferenciales y financiamiento estructurado para planes de expansión e infraestructura.</p>
+                  <h4 style={{ color: '#0f172a', fontSize: '1.2rem', margin: '0 0 15px 0' }}>Cuentas Monetarias</h4>
+                  <p style={{ color: '#475569', lineHeight: '1.6', margin: 0 }}>Tu dinero siempre disponible cuando lo necesitas. Disfruta de una forma ágil y conveniente de administrar tus recursos y realizar tus operaciones financieras diarias.</p>
                 </div>
                 <div style={{ backgroundColor: 'white', padding: '30px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
-                  <h4 style={{ color: '#0f172a', fontSize: '1.2rem', margin: '0 0 15px 0' }}>Gestión de Reclamos</h4>
-                  <p style={{ color: '#475569', lineHeight: '1.6', margin: 0 }}>Plataforma integral 24/7 para el registro, trazabilidad y resolución ágil de tickets de soporte.</p>
+                  <h4 style={{ color: '#0f172a', fontSize: '1.2rem', margin: '0 0 15px 0' }}>Prestamos</h4>
+                  <p style={{ color: '#475569', lineHeight: '1.6', margin: 0 }}>Impulsamos tus proyectos y hacemos realidad tus metas. Encuentra opciones de financiamiento pensadas para ayudarte a alcanzar tus objetivos personales, familiares o empresariales.</p>
+                </div>
+                <div style={{ backgroundColor: 'white', padding: '30px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+                  <h4 style={{ color: '#0f172a', fontSize: '1.2rem', margin: '0 0 15px 0' }}>Cheques</h4>
+                  <p style={{ color: '#475569', lineHeight: '1.6', margin: 0 }}>Una solución confiable para gestionar tus pagos. Realiza tus transacciones con seguridad y respaldo, facilitando la administración de tus compromisos financieros.</p>
                 </div>
               </div>
             </div>

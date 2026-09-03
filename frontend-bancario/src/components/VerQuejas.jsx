@@ -245,8 +245,7 @@ function VerQuejas() {
   // RENDERIZADO: VISTA DE DETALLE
   // ==========================================
   if (detalleActivo && !cargandoDetalle) {
-    const { queja, documentos } = detalleActivo;
-
+    const { queja, documentos, quejasRelacionadas } = detalleActivo;
     const estadoTexto = obtenerTextoCampo(queja.estado) || 'Registrada';
     const productoTexto = obtenerTextoCampo(queja.producto) || queja.productoNombre || `Producto ID: ${queja.productoId}`;
     const colorEstado = getColorEstado(estadoTexto);
@@ -265,6 +264,14 @@ function VerQuejas() {
             ← Volver al listado
           </button>
         </div>
+
+        {/* BANNER DE TICKET PADRE */}
+        {queja.numeroTicketPadre && (
+          <div style={{ backgroundColor: '#f0f9ff', border: '1px solid #bae6fd', padding: '12px 15px', borderRadius: '6px', marginBottom: '25px', color: '#0369a1', fontSize: '0.95rem', display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <span style={{ fontSize: '1.2rem' }}>🔗</span>
+            <span>Queja derivada del ticket <strong>{queja.numeroTicketPadre}</strong></span>
+          </div>
+        )}
 
         <div style={{ background: '#f8fafc', padding: '20px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
 
@@ -326,6 +333,37 @@ function VerQuejas() {
               <p style={{ margin: 0, color: '#94a3b8', fontSize: '0.9rem', fontStyle: 'italic' }}>No se cargaron documentos de respaldo para esta queja.</p>
             )}
           </div>
+
+          {/* TABLA DE TICKETS DERIVADOS (HIJOS) */}
+          {quejasRelacionadas && quejasRelacionadas.length > 0 && (
+            <div style={{ marginBottom: '30px' }}>
+              <p style={{ fontSize: '0.85rem', color: '#64748b', margin: '0 0 5px 0', fontWeight: '600' }}>TICKETS DERIVADOS (RELACIONADOS)</p>
+              <div style={{ background: 'white', borderRadius: '6px', border: '1px solid #e2e8f0', overflow: 'hidden' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.9rem', textAlign: 'left' }}>
+                  <thead>
+                    <tr style={{ backgroundColor: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
+                      <th style={{ padding: '12px 15px', color: '#475569', fontWeight: '600' }}>No. Ticket</th>
+                      <th style={{ padding: '12px 15px', color: '#475569', fontWeight: '600' }}>Estado Actual</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {quejasRelacionadas.map((relacionada, index) => (
+                      <tr key={index} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                        <td style={{ padding: '12px 15px', color: '#0f172a', fontWeight: '500' }}>
+                          #{relacionada.numeroTicket}
+                        </td>
+                        <td style={{ padding: '12px 15px' }}>
+                          <span style={{ background: '#f1f5f9', color: '#475569', padding: '4px 10px', borderRadius: '20px', fontSize: '0.8rem', fontWeight: '600' }}>
+                            {obtenerTextoCampo(relacionada.estado)}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
 
           {/* ========================================================= */}
           {/* AQUÍ COMIENZA LA INTEGRACIÓN DEL CHAT Y EL FORMULARIO     */}

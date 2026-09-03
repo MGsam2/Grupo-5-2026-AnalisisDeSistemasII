@@ -52,6 +52,18 @@ public class Queja {
     @Column(name = "observaciones_supervisor", columnDefinition = "TEXT")
     private String observacionesSupervisor;
 
+    @ManyToOne
+    @JoinColumn(name = "queja_padre_id", nullable = true)
+    @com.fasterxml.jackson.annotation.JsonIgnore
+    private Queja quejaPadre;
+
+    // Este "truco" permite que React reciba el string "QJ-001" en lugar del objeto
+    // completo
+    @com.fasterxml.jackson.annotation.JsonProperty("numeroTicketPadre")
+    public String getNumeroTicketPadre() {
+        return this.quejaPadre != null ? this.quejaPadre.getNumeroTicket() : null;
+    }
+
     @PrePersist
     protected void onCreate() {
         this.fechaCreacion = LocalDateTime.now();
@@ -162,5 +174,13 @@ public class Queja {
 
     public void setObservacionesSupervisor(String observacionesSupervisor) {
         this.observacionesSupervisor = observacionesSupervisor;
+    }
+
+    public Queja getQuejaPadre() {
+        return quejaPadre;
+    }
+
+    public void setQuejaPadre(Queja quejaPadre) {
+        this.quejaPadre = quejaPadre;
     }
 }

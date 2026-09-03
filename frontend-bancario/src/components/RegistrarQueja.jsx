@@ -6,6 +6,10 @@ function RegistrarQueja() {
   const [productoId, setProductoId] = useState('');
   const [archivo, setArchivo] = useState(null);
 
+  // --- NUEVOS ESTADOS ---
+  const [estaRelacionada, setEstaRelacionada] = useState(false);
+  const [ticketPadre, setTicketPadre] = useState('');
+
   const [mensaje, setMensaje] = useState({ texto: '', tipo: '' });
   const [cargando, setCargando] = useState(false);
 
@@ -83,6 +87,11 @@ function RegistrarQueja() {
     formData.append('usuarioNombre', usuarioNombre);
     formData.append('usuarioApellido', usuarioApellido);
 
+    // --- AGREGAMOS EL TICKET PADRE SI APLICA ---
+    if (estaRelacionada && ticketPadre) {
+      formData.append('ticketPadre', ticketPadre.trim());
+    }
+
     if (archivo) {
       formData.append('archivo', archivo);
     }
@@ -112,6 +121,8 @@ function RegistrarQueja() {
         setDescripcion('');
         setProductoId('');
         setArchivo(null);
+        setEstaRelacionada(false);
+        setTicketPadre('');
         document.getElementById('input-archivo').value = '';
 
       } else {
@@ -169,6 +180,34 @@ function RegistrarQueja() {
               </option>
             ))}
           </select>
+        </div>
+
+        {/* --- NUEVA SECCIÓN: TICKET RELACIONADO --- */}
+        <div style={{ marginBottom: '20px', padding: '15px', background: '#f0f9ff', border: '1px solid #bae6fd', borderRadius: '6px' }}>
+          <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.9rem', color: '#0369a1', cursor: 'pointer', fontWeight: '500' }}>
+            <input
+              type="checkbox"
+              checked={estaRelacionada}
+              onChange={(e) => {
+                setEstaRelacionada(e.target.checked);
+                if (!e.target.checked) setTicketPadre(''); // Limpia el input si se desmarca
+              }}
+            />
+            ¿Esta queja está relacionada con un ticket anterior?
+          </label>
+
+          {estaRelacionada && (
+            <div style={{ marginTop: '12px' }} className="fade-in">
+              <input
+                type="text"
+                value={ticketPadre}
+                onChange={(e) => setTicketPadre(e.target.value)}
+                placeholder="Ingrese el número de ticket (Ej. QJ-12345)"
+                required={estaRelacionada}
+                style={{ width: '100%', padding: '10px', background: 'white', border: '1px solid #7dd3fc', borderRadius: '4px', boxSizing: 'border-box' }}
+              />
+            </div>
+          )}
         </div>
 
         {/* DESCRIPCIÓN */}

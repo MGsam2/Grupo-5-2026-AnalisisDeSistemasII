@@ -22,6 +22,9 @@ public interface QuejaRepositorio extends JpaRepository<Queja, Long> {
     // Busca las quejas dependiendo de su estado (ej. "EnRevisionSupervisor")
     List<Queja> findByEstado(com.banco.quejas.modelo.EstadoQueja estado);
 
+    // Buscar todas las quejas que nacieron a partir de una queja principal
+    List<Queja> findByQuejaPadreId(Long quejaPadreId);
+
     @Query(value = "SELECT u.email " +
             "FROM usuarios u " +
             "INNER JOIN usuario_roles ur ON u.id = ur.usuario_id " +
