@@ -29,16 +29,20 @@ public class BitacoraQueja {
     @Column(name = "fecha_hora")
     private LocalDateTime fechaHora;
 
-    // Constructor vacío (Requerido por Hibernate)
+    @Column(name = "direccion_ip", length = 45) // 45 es suficiente para IPv6
+    private String direccionIp;
+
+
     public BitacoraQueja() {}
 
-    public BitacoraQueja(String usuarioEmail, Long quejaId, String estadoAnterior, String estadoNuevo, String descripcionEvento, LocalDateTime fechaHora) {
+    public BitacoraQueja(String usuarioEmail, Long quejaId, String estadoAnterior, String estadoNuevo, String descripcionEvento, LocalDateTime fechaHora, String direccionIp) {
         this.usuarioEmail = usuarioEmail;
         this.quejaId = quejaId;
         this.estadoAnterior = estadoAnterior;
         this.estadoNuevo = estadoNuevo;
         this.descripcionEvento = descripcionEvento;
         this.fechaHora = fechaHora;
+        this.direccionIp = direccionIp;
     }
 
 public Long getId() { return id; }
@@ -55,4 +59,6 @@ public Long getId() { return id; }
     public void setDescripcionEvento(String descripcionEvento) { this.descripcionEvento = descripcionEvento; }
     public LocalDateTime getFechaHora() { return fechaHora; }
     public void setFechaHora(LocalDateTime fechaHora) { this.fechaHora = fechaHora; }
+    public String getDireccionIp() { return direccionIp; }
+    public void setDireccionIp(String direccionIp) { this.direccionIp = direccionIp; }
 }

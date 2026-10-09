@@ -37,6 +37,19 @@ public interface QuejaRepositorio extends JpaRepository<Queja, Long> {
             "LIMIT 1", nativeQuery = true)
     String encontrarAgenteConMenorCarga();
 
+    // NUEVA CONSULTA PARA AUDITORÍA EN CONSOLA (Trae a todos los agentes y su
+    // cantidad de quejas)
+    @Query(value = "SELECT u.email, COUNT(q.id) as cantidad " +
+            "FROM usuarios u " +
+            "INNER JOIN usuario_roles ur ON u.id = ur.usuario_id " +
+            "INNER JOIN roles r ON ur.rol_id = r.id " +
+            "LEFT JOIN quejas q ON u.email = q.agente_asignado_email " +
+            "    AND q.estado_id = (SELECT id FROM catalogo_estados WHERE nombre = 'EnValidacion') " +
+            "WHERE r.nombre = 'ROLE_AGENTE_BANCARIO' AND u.activo = true " +
+            "GROUP BY u.email " +
+            "ORDER BY COUNT(q.id) ASC", nativeQuery = true)
+    List<Object[]> obtenerCargaDeTodosLosAgentes();
+
     // Busca todas las quejas cuyo estado sea "PendienteDeAsignacion"
     @Query("SELECT q FROM Queja q WHERE q.estado.nombre = 'PendienteDeAsignacion'")
     java.util.List<Queja> encontrarQuejasPendientes();

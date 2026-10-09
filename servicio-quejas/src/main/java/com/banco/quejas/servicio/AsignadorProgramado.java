@@ -30,17 +30,28 @@ public class AsignadorProgramado {
     @Autowired
     private BitacoraQuejaRepositorio bitacoraQuejaRepositorio;
 
-    
     @Scheduled(fixedRate = 15000)
     @Transactional
     public void procesarQuejasEstancadas() {
-        List < Queja > quejasPendientes = quejaRepositorio.encontrarQuejasPendientes();
+        List<Queja> quejasPendientes = quejaRepositorio.encontrarQuejasPendientes();
 
         if (quejasPendientes.isEmpty()) {
+            String agenteIdeal = quejaRepositorio.encontrarAgenteConMenorCarga();
+
+            if (agenteIdeal == null) {
+                System.out.println("[Cron Job] no hay agentes activos ahora.");
+            } else {
+
+                System.out.println("[Cron Job] El agente con menor carga es: " + agenteIdeal
+                        + " se le asignaran las quejas");
+
+            }
+
             return;
         }
 
-        System.out.println("Cron Job iniciado: Se encontraron " + quejasPendientes.size() + " quejas estancadas.");
+        System.out.println(
+                "Cron Job iniciado: Se encontraron " + quejasPendientes.size() + " quejas Pendientes de Asignacion.");
 
         EstadoQueja estadoEnValidacion = estadoQuejaRepositorio.findByNombre("EnValidacion");
 
@@ -48,42 +59,45 @@ public class AsignadorProgramado {
             String agenteIdeal = quejaRepositorio.encontrarAgenteConMenorCarga();
 
             if (agenteIdeal != null) {
-                
+
+                System.out.println(
+                        "Cron Job iniciado: El agente con menor carga es " + agenteIdeal
+                                + " se le asignaran las quejas");
+
                 String estadoAnterior = queja.getEstado().getNombre();
-                
+
                 queja.setAgenteAsignadoEmail(agenteIdeal);
                 if (estadoEnValidacion != null) {
                     queja.setEstado(estadoEnValidacion);
                 }
                 quejaRepositorio.save(queja);
 
-                
                 try {
                     BitacoraQueja registroBitacora = new BitacoraQueja(
-                            queja.getUsuarioEmail(), 
+                            queja.getUsuarioEmail(),
                             queja.getId(),
                             estadoAnterior,
                             queja.getEstado().getNombre(),
                             "Rescate por Cron Job: Asignación en segundo plano al agente " + agenteIdeal,
-                            LocalDateTime.now()
-                    );
+                            LocalDateTime.now(),
+                            "127.0.0.1");
                     bitacoraQuejaRepositorio.save(registroBitacora);
                     System.out.println("Bitácora actualizada (Cron Job): Queja " + queja.getId() + " registrada.");
                 } catch (Exception e) {
                     System.err.println("Error al guardar en la bitácora desde el Cron Job: " + e.getMessage());
                 }
 
-           
                 emailServicio.enviarCorreoAsignacionAgente(
-                        agenteIdeal, 
-                        queja.getNumeroTicket(), 
-                        queja.getTitulo()
-                );
+                        agenteIdeal,
+                        queja.getNumeroTicket(),
+                        queja.getTitulo());
 
-                System.out.println("[Cron Job] Queja " + queja.getNumeroTicket() + " rescatada y asignada a: " + agenteIdeal);
+                System.out.println("[Cron Job] Queja " + queja.getNumeroTicket() + " asignada a: " + agenteIdeal);
             } else {
-                System.out.println("[Cron Job] Aún no hay agentes activos. La queja " + queja.getNumeroTicket() + " sigue en espera.");
-                break; 
+                System.out.println("[Cron Job] Aún no hay agentes activos. Las " + quejasPendientes.size()
+                        + " Quejas sigue en espera.");
+
+                break;
             }
         }
     }

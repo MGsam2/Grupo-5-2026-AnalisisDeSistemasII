@@ -39,7 +39,8 @@ public class AuthController {
     private BitacoraRepositorio bitacoraRepositorio;
 
     @PostMapping("/login")
-    public ResponseEntity<?> login(@Valid @RequestBody LoginUsuario loginUsuario) {
+    public ResponseEntity<?> login(@Valid @RequestBody LoginUsuario loginUsuario,
+            jakarta.servlet.http.HttpServletRequest request) {
 
         // 1. Validar si el usuario existe y si está inactivo (Flujo Alterno FA05)
         Optional<Usuario> usuarioOpt = usuarioRepositorio.findByEmail(loginUsuario.getEmail());
@@ -72,6 +73,8 @@ public class AuthController {
         String nombre = (usuarioLogueado != null) ? usuarioLogueado.getNombre() : "";
         String apellido = (usuarioLogueado != null) ? usuarioLogueado.getApellido() : "";
 
+        String ipCliente = obtenerIpCliente(request);
+
         // 5. El sistema registra el evento en la bitácora de auditoría (Usuario,
         // Fecha/Hora, Rol)
         try {
@@ -79,7 +82,8 @@ public class AuthController {
                     loginUsuario.getEmail(),
                     LocalDateTime.now(),
                     rolPrincipal,
-                    "LOGIN_EXITOSO");
+                    "LOGIN_EXITOSO",
+                    ipCliente);
             bitacoraRepositorio.save(registro);
         } catch (Exception e) {
             System.err.println("Advertencia: No se pudo registrar en la bitácora: " + e.getMessage());
@@ -107,4 +111,16 @@ public class AuthController {
         return ResponseEntity.ok(
                 Map.of("mensaje", "Solicitud de activación enviada al administrador con éxito."));
     }
+
+    private String obtenerIpCliente(jakarta.servlet.http.HttpServletRequest request) {
+        String ip = request.getHeader("X-Forwarded-For");
+        if (ip == null || ip.isEmpty() || "unknown".equalsIgnoreCase(ip)) {
+            ip = request.getRemoteAddr();
+        }
+        if (ip != null && ip.contains(",")) {
+            ip = ip.split(",")[0].trim();
+        }
+        return ip;
+    }
+
 }

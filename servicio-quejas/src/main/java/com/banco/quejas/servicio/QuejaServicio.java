@@ -23,7 +23,7 @@ public class QuejaServicio {
     @Autowired
     private BitacoraQuejaRepositorio bitacoraQuejaRepositorio;
 
-    public Queja crearQueja(Queja queja, String usuarioEmail) {
+    public Queja crearQueja(Queja queja, String usuarioEmail, String ip) {
         queja.setUsuarioEmail(usuarioEmail);
 
         // 1. Consultar a la base de datos por el agente activo con menor carga de
@@ -59,7 +59,7 @@ public class QuejaServicio {
 
         // 3. Cumplimiento CU02: Registrar en la Bitácora de Quejas
        try {
-            String estadoAnterior = "Ninguno (Nueva Queja)";
+            String estadoAnterior = "Registrada";
             String estadoNuevo = quejaGuardada.getEstado().getNombre();
             
             // Evaluamos la descripción del evento según el Flujo Normal o el FA01
@@ -76,7 +76,8 @@ public class QuejaServicio {
                     estadoAnterior,
                     estadoNuevo,
                     descripcion,
-                    java.time.LocalDateTime.now()
+                    java.time.LocalDateTime.now(),
+                    ip
             );
             bitacoraQuejaRepositorio.save(registroBitacora);
             System.out.println("Bitácora CU03 actualizada: " + descripcion);

@@ -71,7 +71,8 @@ public class QuejaControlador {
             @RequestParam(value = "usuarioApellido", defaultValue = "") String usuarioApellido,
             @RequestParam(value = "archivo", required = false) MultipartFile archivo,
             @RequestParam(value = "ticketPadre", required = false) String ticketPadre,
-            @RequestHeader("Authorization") String authHeader) {
+            @RequestHeader("Authorization") String authHeader,
+            jakarta.servlet.http.HttpServletRequest request) {
 
         try {
             String emailUsuario = extraerEmailDelToken(authHeader);
@@ -118,7 +119,8 @@ public class QuejaControlador {
                 nuevaQueja.setQuejaPadre(padre);
             }
 
-            Queja quejaGuardada = quejaServicio.crearQueja(nuevaQueja, emailUsuario);
+            String ipCliente = obtenerIpCliente(request);
+            Queja quejaGuardada = quejaServicio.crearQueja(nuevaQueja, emailUsuario, ipCliente);
 
             // RN07: Guardar el documento físico y sus metadatos[cite: 2]
             if (archivo != null && !archivo.isEmpty()) {
@@ -321,7 +323,8 @@ public class QuejaControlador {
     public ResponseEntity<?> enviarASupervisor(
             @PathVariable String numeroTicket,
             @RequestBody java.util.Map<String, String> payload,
-            @RequestHeader("Authorization") String authHeader) {
+            @RequestHeader("Authorization") String authHeader,
+            jakarta.servlet.http.HttpServletRequest request) {
         try {
             String emailAgente = extraerEmailDelToken(authHeader);
             String resolucion = payload.get("resolucion");
@@ -348,9 +351,11 @@ public class QuejaControlador {
             quejaRepositorio.save(queja); // Guardamos los cambios
 
             // Guardar en la bitácora
+            String ipCliente = obtenerIpCliente(request);
             com.banco.quejas.modelo.BitacoraQueja bitacora = new com.banco.quejas.modelo.BitacoraQueja(
                     emailAgente, queja.getId(), estadoAnterior, estadoNuevo.getNombre(),
-                    "Traslado a Supervisor. Resolución redactada: " + resolucion, java.time.LocalDateTime.now());
+                    "Traslado a Supervisor. Resolución redactada: " + resolucion, java.time.LocalDateTime.now(),
+                    ipCliente);
             bitacoraQuejaRepositorio.save(bitacora);
 
             // ---> LO NUEVO: Mensaje automático para el cliente <---
@@ -379,7 +384,8 @@ public class QuejaControlador {
     public ResponseEntity<?> solicitarInformacion(
             @PathVariable String numeroTicket,
             @RequestBody java.util.Map<String, String> payload,
-            @RequestHeader("Authorization") String authHeader) {
+            @RequestHeader("Authorization") String authHeader,
+            jakarta.servlet.http.HttpServletRequest request) {
         try {
             String emailAgente = extraerEmailDelToken(authHeader);
             String justificacion = payload.get("justificacion");
@@ -411,9 +417,11 @@ public class QuejaControlador {
             mensajeQuejaRepositorio.save(mensajeAgente);
 
             // Guardar en la bitácora
+            String ipCliente = obtenerIpCliente(request);
             com.banco.quejas.modelo.BitacoraQueja bitacora = new com.banco.quejas.modelo.BitacoraQueja(
                     emailAgente, queja.getId(), estadoAnterior, estadoNuevo.getNombre(),
-                    "Solicitud de información adicional. Motivo: " + justificacion, java.time.LocalDateTime.now());
+                    "Solicitud de información adicional. Motivo: " + justificacion, java.time.LocalDateTime.now(),
+                    ipCliente);
             bitacoraQuejaRepositorio.save(bitacora);
 
             // Notificar al cliente
@@ -436,7 +444,8 @@ public class QuejaControlador {
             @PathVariable String numeroTicket,
             @RequestParam("mensaje") String mensaje,
             @RequestParam(value = "archivo", required = false) org.springframework.web.multipart.MultipartFile archivo,
-            @RequestHeader("Authorization") String authHeader) {
+            @RequestHeader("Authorization") String authHeader,
+            jakarta.servlet.http.HttpServletRequest request) {
 
         if (archivo != null && !archivo.isEmpty()) {
             String tipo = archivo.getContentType();
@@ -495,10 +504,11 @@ public class QuejaControlador {
             quejaRepositorio.save(queja);
 
             // 4. Registrar en Bitácora
+            String ipCliente = obtenerIpCliente(request);
             com.banco.quejas.modelo.BitacoraQueja bitacora = new com.banco.quejas.modelo.BitacoraQueja(
                     emailCliente, queja.getId(), estadoAnterior, "EnValidacion",
                     "El cliente proporcionó información adicional y adjuntó nueva evidencia.",
-                    java.time.LocalDateTime.now());
+                    java.time.LocalDateTime.now(), ipCliente);
             bitacoraQuejaRepositorio.save(bitacora);
 
             // Opcional: Notificar al agente asignado que el cliente ya respondió
@@ -603,7 +613,8 @@ public class QuejaControlador {
     public ResponseEntity<?> enviarAJefe(
             @PathVariable String numeroTicket,
             @RequestBody java.util.Map<String, String> payload,
-            @RequestHeader("Authorization") String authHeader) {
+            @RequestHeader("Authorization") String authHeader,
+            jakarta.servlet.http.HttpServletRequest request) {
         try {
             String emailSupervisor = extraerEmailDelToken(authHeader);
             String observaciones = payload.get("observaciones");
@@ -629,10 +640,11 @@ public class QuejaControlador {
             quejaRepositorio.save(queja);
 
             // Registro de Bitácora
+            String ipCliente = obtenerIpCliente(request);
             com.banco.quejas.modelo.BitacoraQueja bitacora = new com.banco.quejas.modelo.BitacoraQueja(
                     emailSupervisor, queja.getId(), estadoAnterior, estadoNuevo.getNombre(),
                     "Revisión Aprobada. Traslado a Jefe con observaciones: " + observaciones,
-                    java.time.LocalDateTime.now());
+                    java.time.LocalDateTime.now(), ipCliente);
             bitacoraQuejaRepositorio.save(bitacora);
 
             // Mensaje automático de avance para el chat del Cliente
@@ -657,7 +669,8 @@ public class QuejaControlador {
     public ResponseEntity<?> devolverAAgente(
             @PathVariable String numeroTicket,
             @RequestBody java.util.Map<String, String> payload,
-            @RequestHeader("Authorization") String authHeader) {
+            @RequestHeader("Authorization") String authHeader,
+            jakarta.servlet.http.HttpServletRequest request) {
         try {
             String emailSupervisor = extraerEmailDelToken(authHeader);
             String motivo = payload.get("observaciones"); // Reutilizamos el textarea de observaciones
@@ -690,10 +703,11 @@ public class QuejaControlador {
             mensajeQuejaRepositorio.save(mensajeDevolucion);
 
             // Registro de Bitácora
+            String ipCliente = obtenerIpCliente(request);
             com.banco.quejas.modelo.BitacoraQueja bitacora = new com.banco.quejas.modelo.BitacoraQueja(
                     emailSupervisor, queja.getId(), estadoAnterior, estadoNuevo.getNombre(),
                     "Devuelta al Agente. Motivo: " + motivo,
-                    java.time.LocalDateTime.now());
+                    java.time.LocalDateTime.now(), ipCliente);
             bitacoraQuejaRepositorio.save(bitacora);
 
             // FA03: Notificar al Agente Bancario
@@ -707,6 +721,17 @@ public class QuejaControlador {
         } catch (Exception e) {
             return ResponseEntity.status(500).body("Error interno: " + e.getMessage());
         }
+    }
+
+    private String obtenerIpCliente(jakarta.servlet.http.HttpServletRequest request) {
+        String ip = request.getHeader("X-Forwarded-For");
+        if (ip == null || ip.isEmpty() || "unknown".equalsIgnoreCase(ip)) {
+            ip = request.getRemoteAddr();
+        }
+        if (ip != null && ip.contains(",")) {
+            ip = ip.split(",")[0].trim();
+        }
+        return ip;
     }
 
 }

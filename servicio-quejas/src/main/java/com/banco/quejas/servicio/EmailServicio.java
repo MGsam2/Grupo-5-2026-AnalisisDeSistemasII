@@ -16,7 +16,7 @@ public class EmailServicio {
             SimpleMailMessage mensaje = new SimpleMailMessage();
 
             // Configuración del correo
-            mensaje.setFrom("bncnoreplyinfo@gmail.com");
+            mensaje.setFrom("bncnotify@outlook.com");
             mensaje.setTo(destinatario);
             mensaje.setSubject("¡Queja Registrada con Éxito! - Ticket: " + numeroTicket);
 
@@ -43,12 +43,12 @@ public class EmailServicio {
         try {
             SimpleMailMessage mensaje = new SimpleMailMessage();
 
-            mensaje.setFrom("bncnoreplyinfo@gmail.com"); // Debe coincidir con tu username de properties
+            mensaje.setFrom("bncnotify@outlook.com"); // Debe coincidir con tu username de properties
             mensaje.setTo(correoAgente);
             mensaje.setSubject("Atención: Nueva Queja Asignada - Ticket " + numeroTicket);
 
             mensaje.setText("Estimado Agente,\n\n" +
-                    "El sistema de balanceo de carga le ha asignado una nueva queja para su gestión.\n\n" +
+                    "El sistema del Banco Capital Nacional le ha asignado una nueva queja para su gestión.\n\n" +
                     "Detalles de la asignación:\n" +
                     "- Número de Ticket: " + numeroTicket + "\n" +
                     "- Título: " + titulo + "\n\n" +
@@ -69,7 +69,7 @@ public class EmailServicio {
     public void enviarCorreoSolicitudInformacion(String destinatario, String numeroTicket, String justificacion) {
         try {
             org.springframework.mail.SimpleMailMessage mensaje = new org.springframework.mail.SimpleMailMessage();
-            mensaje.setFrom("bncnoreplyinfo@gmail.com");
+            mensaje.setFrom("bncnotify@outlook.com");
             mensaje.setTo(destinatario);
             mensaje.setSubject("Información Adicional Requerida - Ticket: " + numeroTicket);
             mensaje.setText("Estimado cliente,\n\n"
@@ -91,7 +91,7 @@ public class EmailServicio {
     public void enviarCorreoRespuestaCliente(String destinatario, String numeroTicket, String mensaje) {
         try {
             org.springframework.mail.SimpleMailMessage mensajen = new org.springframework.mail.SimpleMailMessage();
-            mensajen.setFrom("bncnoreplyinfo@gmail.com");
+            mensajen.setFrom("bncnotify@outlook.com");
             mensajen.setTo(destinatario);
             mensajen.setSubject("Respuesta del Cliente - Ticket: " + numeroTicket);
             mensajen.setText("Estimado Agente,\n\n"

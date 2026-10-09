@@ -94,7 +94,7 @@ function Portal({ onLogout }) {
           </div>
         </div>
 
-        <div className="sidebar-menu-title" style={{ marginTop: '10px' }}>MIS GESTIONES</div>
+        <div className="sidebar-menu-title" style={{ marginTop: '10px' }}>MENU</div>
 
         <ul className="nav-list">
           <li className="nav-item">
@@ -159,7 +159,7 @@ function Portal({ onLogout }) {
           {vistaActiva === 'inicio' && (
             <div className="fade-in">
               <div className="content-header" style={{ marginBottom: '40px' }}>
-                <h1 style={{ fontSize: '2.2rem', color: '#0f172a', margin: '0 0 10px 0' }}>Hola, bienvenido a su portal</h1>
+                <h1 style={{ fontSize: '2.2rem', color: '#0f172a', margin: '0 0 10px 0' }}>Hola, {nombreParaMostrar} bienvenido a su portal</h1>
                 <p style={{ fontSize: '1.1rem', color: '#64748b', margin: 0 }}>
                   Aquí puede consultar el estado de sus reclamos personales y generar nuevos tickets.
                 </p>
@@ -176,14 +176,14 @@ function Portal({ onLogout }) {
                 </div>
 
                 <div style={{ backgroundColor: 'white', padding: '25px', borderRadius: '10px', border: '1px solid #e2e8f0', borderLeft: '4px solid #f59e0b', boxShadow: '0 2px 10px rgba(0,0,0,0.02)' }}>
-                  <p style={{ fontSize: '0.9rem', fontWeight: '600', color: '#64748b', margin: '0 0 10px 0', textTransform: 'uppercase' }}>Mis Tickets en Proceso</p>
+                  <p style={{ fontSize: '0.9rem', fontWeight: '600', color: '#64748b', margin: '0 0 10px 0', textTransform: 'uppercase' }}>Mis Quejas en Proceso</p>
                   <h3 style={{ fontSize: '2.5rem', color: '#0f172a', margin: 0 }}>
                     {cargandoStats ? '...' : estadisticas.enProceso}
                   </h3>
                 </div>
 
                 <div style={{ backgroundColor: 'white', padding: '25px', borderRadius: '10px', border: '1px solid #e2e8f0', borderLeft: '4px solid #10b981', boxShadow: '0 2px 10px rgba(0,0,0,0.02)' }}>
-                  <p style={{ fontSize: '0.9rem', fontWeight: '600', color: '#64748b', margin: '0 0 10px 0', textTransform: 'uppercase' }}>Mis Casos Finalizados</p>
+                  <p style={{ fontSize: '0.9rem', fontWeight: '600', color: '#64748b', margin: '0 0 10px 0', textTransform: 'uppercase' }}>Mis Quejas Finalizadas</p>
                   <h3 style={{ fontSize: '2.5rem', color: '#0f172a', margin: 0 }}>
                     {cargandoStats ? '...' : estadisticas.finalizadas}
                   </h3>
@@ -191,28 +191,6 @@ function Portal({ onLogout }) {
 
               </div>
 
-              {/* SECCIÓN INFORMATIVA DE VALOR PARA EL USUARIO */}
-              <div style={{ backgroundColor: 'white', padding: '35px', borderRadius: '10px', border: '1px solid #e2e8f0', boxShadow: '0 2px 10px rgba(0,0,0,0.02)' }}>
-                <h3 style={{ fontSize: '1.3rem', color: '#0f172a', marginBottom: '20px' }}>¿Cómo procesamos sus solicitudes?</h3>
-                <p style={{ color: '#475569', lineHeight: '1.7', marginBottom: '25px', fontSize: '1.05rem' }}>
-                  Su tranquilidad es nuestra prioridad. Cada caso que nos reporta avanza por distintas etapas para garantizar que reciba una respuesta justa y bien fundamentada.
-                </p>
-
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '20px' }}>
-                  <div>
-                    <h4 style={{ color: '#0f172a', fontSize: '1rem', marginBottom: '8px' }}>1. Recepción</h4>
-                    <p style={{ color: '#64748b', fontSize: '0.9rem', lineHeight: '1.5' }}>Al generar su ticket, pasa al estado <strong>Registrada</strong> y un agente bancario se encarga de revisar los datos iniciales[cite: 2].</p>
-                  </div>
-                  <div>
-                    <h4 style={{ color: '#0f172a', fontSize: '1rem', marginBottom: '8px' }}>2. Análisis de su Caso</h4>
-                    <p style={{ color: '#64748b', fontSize: '0.9rem', lineHeight: '1.5' }}>Si su solicitud requiere validaciones profundas, avanzará por las etapas de revisión con nuestros supervisores para asegurar la calidad de la respuesta[cite: 2].</p>
-                  </div>
-                  <div>
-                    <h4 style={{ color: '#0f172a', fontSize: '1rem', marginBottom: '8px' }}>3. Respuesta Final</h4>
-                    <p style={{ color: '#64748b', fontSize: '0.9rem', lineHeight: '1.5' }}>Una vez concluida la investigación, su caso cambiará a <strong>Aprobada</strong> o <strong>Denegada</strong>, notificándole la resolución formal[cite: 2].</p>
-                  </div>
-                </div>
-              </div>
 
             </div>
           )}

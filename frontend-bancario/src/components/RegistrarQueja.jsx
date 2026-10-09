@@ -160,6 +160,10 @@ function RegistrarQueja() {
             required
             style={{ width: '100%', padding: '12px', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '6px', boxSizing: 'border-box' }}
           />
+          {/* Contador de caracteres para Título */}
+          <div style={{ textAlign: 'right', fontSize: '0.8rem', color: '#64748b', marginTop: '4px' }}>
+            Quedan {50 - titulo.length} de 50 caracteres disponibles
+          </div>
         </div>
 
         {/* SELECTOR DE PRODUCTOS */}
@@ -193,7 +197,7 @@ function RegistrarQueja() {
                 if (!e.target.checked) setTicketPadre(''); // Limpia el input si se desmarca
               }}
             />
-            ¿Esta queja está relacionada con un ticket anterior?
+            ¿Esta queja está relacionada con una Queja anterior?
           </label>
 
           {estaRelacionada && (
@@ -201,11 +205,16 @@ function RegistrarQueja() {
               <input
                 type="text"
                 value={ticketPadre}
+                maxLength={15}
                 onChange={(e) => setTicketPadre(e.target.value)}
-                placeholder="Ingrese el número de ticket (Ej. QJ-12345)"
+                placeholder="Ingrese el número de Queja (Ej. QJ-12345)"
                 required={estaRelacionada}
                 style={{ width: '100%', padding: '10px', background: 'white', border: '1px solid #7dd3fc', borderRadius: '4px', boxSizing: 'border-box' }}
               />
+              {/* Contador de caracteres para Ticket Padre */}
+              <div style={{ textAlign: 'right', fontSize: '0.8rem', color: '#0369a1', marginTop: '4px' }}>
+                Quedan {15 - ticketPadre.length} de 15 caracteres disponibles
+              </div>
             </div>
           )}
         </div>
@@ -224,6 +233,10 @@ function RegistrarQueja() {
             rows="5"
             style={{ width: '100%', padding: '12px', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '6px', resize: 'vertical', fontFamily: 'inherit', boxSizing: 'border-box' }}
           ></textarea>
+          {/* Contador de caracteres para Descripción */}
+          <div style={{ textAlign: 'right', fontSize: '0.8rem', color: '#64748b', marginTop: '4px' }}>
+            Quedan {120 - descripcion.length} de 120 caracteres disponibles
+          </div>
         </div>
 
         {/* CARGA DE ARCHIVOS */}

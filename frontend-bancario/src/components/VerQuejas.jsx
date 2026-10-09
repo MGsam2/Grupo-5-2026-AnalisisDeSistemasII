@@ -255,7 +255,7 @@ function VerQuejas() {
       <div className="content-card fade-in">
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '25px' }}>
           <h2 className="card-title" style={{ margin: 0, color: '#0f172a' }}>
-            Detalle del Ticket #{numeroTicketReal}
+            Detalle de la Queja #{numeroTicketReal}
           </h2>
           <button
             onClick={() => { setDetalleActivo(null); cargarListado(); }}
@@ -269,7 +269,7 @@ function VerQuejas() {
         {queja.numeroTicketPadre && (
           <div style={{ backgroundColor: '#f0f9ff', border: '1px solid #bae6fd', padding: '12px 15px', borderRadius: '6px', marginBottom: '25px', color: '#0369a1', fontSize: '0.95rem', display: 'flex', alignItems: 'center', gap: '10px' }}>
             <span style={{ fontSize: '1.2rem' }}>🔗</span>
-            <span>Queja derivada del ticket <strong>{queja.numeroTicketPadre}</strong></span>
+            <span>Queja derivada de la Queja <strong>{queja.numeroTicketPadre}</strong></span>
           </div>
         )}
 
