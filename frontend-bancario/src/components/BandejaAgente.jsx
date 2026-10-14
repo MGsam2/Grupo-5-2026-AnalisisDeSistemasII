@@ -132,6 +132,23 @@ function BandejaAgente({ onLogout }) {
     }
   };
 
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const evento = params.get('event');
+    const ticketFirma = params.get('ticketFirma');
+
+    if (evento === 'signing_complete' && ticketFirma) {
+      console.log("Retorno de DocuSign detectado para el ticket:", ticketFirma);
+
+      setMensajeAccion({ texto: 'Resolución enviada y firmada con éxito', tipo: 'exito' });
+      setAccionCompletada(true);
+
+      verDetalle(ticketFirma);
+
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
+  }, []);
+
   const abrirDocumento = async (documentoId) => {
     const token = obtenerToken();
     try {
@@ -196,10 +213,24 @@ function BandejaAgente({ onLogout }) {
       if (respuesta.ok) {
         // Si el backend envía el JSON exacto de éxito
         const data = await respuesta.json();
-        setMensajeAccion({ texto: data.mensaje, tipo: 'exito' });
-        setResolucion('');
 
+        // =================================================================
+        if (data.urlFirma) {
+          setMensajeAccion({ texto: 'Preparando entorno seguro. Redirigiendo a DocuSign...', tipo: 'info' });
+
+          // Redirige automáticamente al entorno seguro de DocuSign
+          window.location.href = data.urlFirma;
+
+          // El return evita que se sigan ejecutando los setTimeouts de abajo, 
+          // ya que la página va a cambiar de URL.
+          return;
+        }
+        // =================================================================
+
+        setMensajeAccion({ texto: data.mensaje || 'Operación realizada con éxito', tipo: 'exito' });
+        setResolucion('');
         setAccionCompletada(true);
+
 
         if (tipoAccion === 'info') {
           // Si pidió info, recargamos el chat y actualizamos el estado visual a Esperando Documentación

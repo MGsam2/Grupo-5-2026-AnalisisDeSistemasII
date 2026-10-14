@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import HistorialMensajes from './HistorialMensajes'; 
+import HistorialMensajes from './HistorialMensajes';
 
 function BandejaSupervisor({ onLogout }) {
   // Estados para el listado y estadísticas
@@ -7,17 +7,17 @@ function BandejaSupervisor({ onLogout }) {
   const [estadisticasTexto, setEstadisticasTexto] = useState('');
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState(null);
-  
+
   // Estados para la vista de detalle
   const [detalleActivo, setDetalleActivo] = useState(null);
   const [cargandoDetalle, setCargandoDetalle] = useState(false);
-  
+
   // Estados para la gestión del supervisor
   const [observaciones, setObservaciones] = useState('');
   const [mensajeAccion, setMensajeAccion] = useState({ texto: '', tipo: '' });
   const [procesandoAccion, setProcesandoAccion] = useState(false);
   const [accionCompletada, setAccionCompletada] = useState(false);
-  
+
   // Estado para refrescar el chat
   const [refreshHistorial, setRefreshHistorial] = useState(0);
 
@@ -86,10 +86,10 @@ function BandejaSupervisor({ onLogout }) {
   const verDetalle = async (numeroTicket) => {
     setCargandoDetalle(true);
     setError(null);
-    setObservaciones(''); 
-    setMensajeAccion({ texto: '', tipo: '' }); 
-    setAccionCompletada(false); 
-    
+    setObservaciones('');
+    setMensajeAccion({ texto: '', tipo: '' });
+    setAccionCompletada(false);
+
     const token = obtenerToken();
 
     try {
@@ -138,6 +138,32 @@ function BandejaSupervisor({ onLogout }) {
     }
   };
 
+  const verDictamenFirmado = async (numeroTicket) => {
+    const token = obtenerToken();
+    try {
+      // Usamos el nuevo endpoint de Java
+      const respuesta = await fetch(`/api/quejas/${numeroTicket}/descargar-resolucion`, {
+        method: 'GET',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+
+      if (respuesta.ok) {
+        const blob = await respuesta.blob();
+        const url = URL.createObjectURL(blob);
+        window.open(url, '_blank'); // Abre el PDF en una pestaña nueva
+        setTimeout(() => URL.revokeObjectURL(url), 1000); // Limpia la memoria
+      } else if (respuesta.status === 404) {
+        alert('Este ticket no tiene un dictamen firmado asociado.');
+      } else {
+        alert('Ocurrió un error al intentar descargar el dictamen firmado.');
+      }
+    } catch (error) {
+      console.error('Error al descargar dictamen:', error);
+      alert('Error de red. No fue posible conectar con el servidor.');
+    }
+  };
+
+
   const ejecutarAccionSupervisor = async (tipoAccion, numeroTicket) => {
     if (!observaciones.trim()) {
       setMensajeAccion({ texto: 'Debe ingresar sus observaciones antes de continuar.', tipo: 'error' });
@@ -149,7 +175,7 @@ function BandejaSupervisor({ onLogout }) {
     const token = obtenerToken();
 
     // Determinamos el endpoint según la decisión del supervisor
-    const endpoint = tipoAccion === 'jefe' 
+    const endpoint = tipoAccion === 'jefe'
       ? `/api/quejas/${numeroTicket}/enviar-jefe`
       : `/api/quejas/${numeroTicket}/devolver-agente`;
 
@@ -168,9 +194,9 @@ function BandejaSupervisor({ onLogout }) {
       if (respuesta.ok) {
         const data = await respuesta.json();
         setMensajeAccion({ texto: data.mensaje || 'Operación realizada con éxito.', tipo: 'exito' });
-        setObservaciones(''); 
-        setAccionCompletada(true); 
-        
+        setObservaciones('');
+        setAccionCompletada(true);
+
         // Simular el cambio visual temporalmente para que se bloqueen los botones
         const nuevoEstado = tipoAccion === 'jefe' ? 'EnRevisionJefe' : 'EnValidacion';
         setDetalleActivo(prev => ({
@@ -185,7 +211,7 @@ function BandejaSupervisor({ onLogout }) {
 
       } else {
         const errorMsg = await respuesta.text();
-        let textoFinal = "Error al procesar la solicitud."; 
+        let textoFinal = "Error al procesar la solicitud.";
         try {
           const parsed = JSON.parse(errorMsg);
           textoFinal = parsed.error || parsed.mensaje || errorMsg;
@@ -231,10 +257,10 @@ function BandejaSupervisor({ onLogout }) {
     return (
       <div style={{ padding: '30px', backgroundColor: '#f8fafc', minHeight: '100vh' }}>
         <div className="content-card fade-in" style={{ maxWidth: '1000px', margin: '0 auto', backgroundColor: 'white', padding: '30px', borderRadius: '8px', boxShadow: '0 4px 6px rgba(0,0,0,0.05)' }}>
-          
+
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '25px', borderBottom: '1px solid #e2e8f0', paddingBottom: '15px' }}>
             <h2 style={{ margin: 0, color: '#0f172a' }}>Revisión de Caso #{numeroTicketReal}</h2>
-            <button 
+            <button
               onClick={() => { setDetalleActivo(null); cargarDashboard(); }}
               style={{ padding: '8px 16px', background: 'transparent', border: '1px solid #cbd5e1', borderRadius: '6px', cursor: 'pointer' }}
             >
@@ -294,29 +320,45 @@ function BandejaSupervisor({ onLogout }) {
 
           {/* ÁREA DE GESTIÓN DEL SUPERVISOR */}
           <div style={{ borderTop: '2px dashed #cbd5e1', paddingTop: '20px', marginTop: '20px' }}>
-            <h3 style={{ fontSize: '1.2rem', color: '#0f172a', marginBottom: '15px' }}>Gestión del Supervisor</h3>
-            
+
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
+              <h3 style={{ fontSize: '1.2rem', color: '#0f172a', margin: 0 }}>Gestión del Supervisor</h3>
+
+              {/* BOTÓN MÁGICO DEL PDF FIRMADO */}
+              <button
+                onClick={() => verDictamenFirmado(numeroTicketReal)}
+                style={{
+                  padding: '8px 16px', background: '#10b981', color: 'white', border: 'none',
+                  borderRadius: '6px', fontWeight: '600', cursor: 'pointer',
+                  display: 'flex', alignItems: 'center', gap: '8px',
+                  boxShadow: '0 2px 4px rgba(16, 185, 129, 0.2)'
+                }}
+              >
+                📄 Ver Dictamen Firmado
+              </button>
+            </div>
+
             <p style={{ fontSize: '0.85rem', color: '#64748b', margin: '0 0 5px 0', fontWeight: '600' }}>OBSERVACIONES DE REVISIÓN</p>
-            
-            <textarea 
+
+            <textarea
               value={observaciones}
               onChange={(e) => setObservaciones(e.target.value)}
               placeholder={
-                bloqueadoPorEstado 
-                  ? `Modo lectura. El ticket está en estado "${estadoTexto}".` 
+                bloqueadoPorEstado
+                  ? `Modo lectura. El ticket está en estado "${estadoTexto}".`
                   : "Redacte sus observaciones aquí..."
               }
               rows="4"
               maxLength={500}
-              style={{ 
-                width: '100%', padding: '12px', borderRadius: '6px', border: '1px solid #cbd5e1', 
+              style={{
+                width: '100%', padding: '12px', borderRadius: '6px', border: '1px solid #cbd5e1',
                 marginBottom: '5px', fontFamily: 'inherit', resize: 'vertical',
                 backgroundColor: controlesBloqueados ? '#f1f5f9' : 'white',
                 boxSizing: 'border-box'
               }}
               disabled={controlesBloqueados}
             ></textarea>
-            
+
             {/* Contador de caracteres */}
             {!controlesBloqueados && (
               <div style={{ textAlign: 'right', fontSize: '0.75rem', color: observaciones.length === 500 ? '#ef4444' : '#94a3b8', marginBottom: '15px' }}>
@@ -325,7 +367,7 @@ function BandejaSupervisor({ onLogout }) {
             )}
 
             {mensajeAccion.texto && (
-              <div style={{ 
+              <div style={{
                 marginBottom: '15px', padding: '12px', borderRadius: '6px', fontSize: '0.9rem', fontWeight: '500',
                 backgroundColor: mensajeAccion.tipo === 'error' ? '#fef2f2' : mensajeAccion.tipo === 'exito' ? '#f0fdf4' : '#f0f9ff',
                 color: mensajeAccion.tipo === 'error' ? '#991b1b' : mensajeAccion.tipo === 'exito' ? '#166534' : '#0369a1',
@@ -336,15 +378,15 @@ function BandejaSupervisor({ onLogout }) {
             )}
 
             <div style={{ display: 'flex', gap: '15px', flexWrap: 'wrap' }}>
-              <button 
+              <button
                 onClick={() => ejecutarAccionSupervisor('agente', numeroTicketReal)}
                 disabled={controlesBloqueados}
                 style={{ padding: '10px 20px', background: '#ef4444', color: 'white', border: 'none', borderRadius: '6px', fontWeight: '600', cursor: controlesBloqueados ? 'not-allowed' : 'pointer', opacity: controlesBloqueados ? 0.6 : 1 }}
               >
                 Devolver al Agente
               </button>
-              
-              <button 
+
+              <button
                 onClick={() => ejecutarAccionSupervisor('jefe', numeroTicketReal)}
                 disabled={controlesBloqueados}
                 style={{ padding: '10px 20px', background: '#00a8ff', color: 'white', border: 'none', borderRadius: '6px', fontWeight: '600', cursor: controlesBloqueados ? 'not-allowed' : 'pointer', opacity: controlesBloqueados ? 0.6 : 1 }}
@@ -383,7 +425,7 @@ function BandejaSupervisor({ onLogout }) {
       </aside>
 
       <main style={{ flex: 1, padding: '40px' }}>
-        
+
         {/* Banner de Bienvenida / Estadísticas */}
         {estadisticasTexto && (
           <div className="fade-in" style={{ backgroundColor: '#00a8ff', color: 'white', padding: '20px 30px', borderRadius: '8px', marginBottom: '30px', display: 'flex', alignItems: 'center', gap: '15px', boxShadow: '0 4px 6px rgba(0,0,0,0.05)' }}>
@@ -424,7 +466,7 @@ function BandejaSupervisor({ onLogout }) {
                   {quejas.map((queja) => {
                     const idTicket = obtenerTextoCampo(queja.numeroTicket) || queja.id;
                     const estadoTexto = obtenerTextoCampo(queja.estado) || 'En Revisión Supervisor';
-                    
+
                     return (
                       <tr key={idTicket} style={{ borderBottom: '1px solid #f1f5f9' }}>
                         <td style={{ padding: '15px', color: '#64748b', fontWeight: '500' }}>#{idTicket}</td>
@@ -436,7 +478,7 @@ function BandejaSupervisor({ onLogout }) {
                           </span>
                         </td>
                         <td style={{ padding: '15px', textAlign: 'right' }}>
-                          <button 
+                          <button
                             onClick={() => verDetalle(idTicket)}
                             style={{ padding: '6px 12px', background: '#0f172a', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '0.85rem' }}
                           >

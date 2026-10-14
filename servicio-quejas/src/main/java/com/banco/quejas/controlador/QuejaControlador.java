@@ -11,6 +11,7 @@ import com.banco.quejas.repositorio.EstadoQuejaRepositorio;
 import com.banco.quejas.repositorio.ProductoRepositorio;
 import com.banco.quejas.repositorio.BitacoraQuejaRepositorio;
 import com.banco.quejas.repositorio.MensajeQuejaRepositorio;
+import com.banco.quejas.repositorio.QuejaRepositorio;
 import com.banco.quejas.servicio.QuejaServicio;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -18,7 +19,11 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+
+import com.banco.quejas.servicio.DocuSignService;
 import com.banco.quejas.servicio.EmailServicio;
+import com.banco.quejas.servicio.PdfServicio;
+
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.UrlResource;
 import org.springframework.http.HttpHeaders;
@@ -59,6 +64,12 @@ public class QuejaControlador {
 
     @Autowired
     private MensajeQuejaRepositorio mensajeQuejaRepositorio;
+
+    @Autowired
+    private PdfServicio pdfServicio;
+
+    @Autowired
+    private DocuSignService docuSignService;
 
     private final String UPLOAD_DIR = "uploads/";
 
@@ -346,8 +357,30 @@ public class QuejaControlador {
             if (estadoNuevo == null)
                 throw new Exception("El estado no existe en el catálogo.");
 
+            // 1. Obtener datos exactos del agente desde la BD
+            com.banco.quejas.repositorio.QuejaRepositorio.UsuarioProyeccion agenteInfo = quejaRepositorio
+                    .buscarDatosUsuarioPorEmail(emailAgente);
+            String nombreExactoAgente = agenteInfo != null ? (agenteInfo.getNombre() + " " + agenteInfo.getApellido())
+                    : "Agente Bancario";
+            String idExactoAgente = agenteInfo != null ? agenteInfo.getId() : emailAgente;
+
+            // 2. Generar el PDF físicamente con los datos de la queja y la resolución
+            byte[] resolucionPdf = pdfServicio.generarResolucionPdf(queja, resolucion, nombreExactoAgente);
+
+            // 3. Obtener la URL segura de DocuSign
+            java.util.Map<String, String> docuSignRespuesta = docuSignService.generarUrlDeFirma(
+                    idExactoAgente,
+                    nombreExactoAgente,
+                    emailAgente,
+                    resolucionPdf,
+                    queja.getNumeroTicket());
+
+            String urlFirma = docuSignRespuesta.get("url");
+            String envelopeIdGuardar = docuSignRespuesta.get("envelopeId");
+
             queja.setEstado(estadoNuevo);
             queja.setResolucionAgente(resolucion);
+            queja.setFirmaId(envelopeIdGuardar);
             quejaRepositorio.save(queja); // Guardamos los cambios
 
             // Guardar en la bitácora
@@ -368,12 +401,13 @@ public class QuejaControlador {
             mensajeQuejaRepositorio.save(mensajeAvance);
             // ---------------------------------------------------------
 
-            return ResponseEntity
-                    .ok(java.util.Map.of("mensaje", "La resolución ha sido enviada al Supervisor Correctamente"));
+            return ResponseEntity.ok(java.util.Map.of(
+                    "mensaje", "Resolución guardada. Redirigiendo a firma segura...",
+                    "urlFirma", urlFirma));
 
         } catch (Exception e) {
-            // FA06: Error al trasladar la queja
-            return ResponseEntity.status(500).body("Error al trasladar la queja: " + e.getMessage());
+            e.printStackTrace();
+            return ResponseEntity.status(500).body("Error al trasladar la queja o generar firma: " + e.getMessage());
         }
     }
 
@@ -630,7 +664,6 @@ public class QuejaControlador {
 
             String estadoAnterior = queja.getEstado().getNombre();
 
-            // Buscar nuevo estado (⚠️ Verifica que esté escrito así en tu tabla de estados)
             EstadoQueja estadoNuevo = estadoQuejaRepositorio.findByNombre("EnRevisionJefe");
             if (estadoNuevo == null)
                 throw new Exception("El estado 'EnRevisionJefe' no existe.");
@@ -686,7 +719,6 @@ public class QuejaControlador {
 
             String estadoAnterior = queja.getEstado().getNombre();
 
-            // Buscar nuevo estado (⚠️ Verifica que esté escrito así en tu tabla)
             EstadoQueja estadoNuevo = estadoQuejaRepositorio.findByNombre("DevueltaParaRevision");
             if (estadoNuevo == null)
                 throw new Exception("El estado 'DevueltaParaRevision' no existe.");
@@ -695,7 +727,6 @@ public class QuejaControlador {
             queja.setObservacionesSupervisor("Devuelta: " + motivo);
             quejaRepositorio.save(queja);
 
-            // FA03: El sistema muestra el motivo en forma de burbuja (Chat)
             MensajeQueja mensajeDevolucion = new MensajeQueja(
                     queja, emailSupervisor, "SUPERVISOR",
                     "Queja devuelta para correcciones obligatorias: " + motivo,
@@ -732,6 +763,30 @@ public class QuejaControlador {
             ip = ip.split(",")[0].trim();
         }
         return ip;
+    }
+
+    // ==========================================
+    @GetMapping("/{numeroTicket}/descargar-resolucion")
+    public ResponseEntity<byte[]> descargarResolucionFirmada(@PathVariable String numeroTicket) {
+        try {
+            Queja queja = quejaServicio.obtenerQuejaPorTicket(numeroTicket);
+            if (queja == null || queja.getFirmaId() == null) {
+                return ResponseEntity.notFound().build();
+            }
+
+            // Traemos el PDF fresco y firmado desde la nube de DocuSign
+            byte[] pdfFirmado = docuSignService.descargarDocumentoFirmado(queja.getFirmaId());
+
+            // Preparamos la respuesta para que el navegador sepa que es un PDF
+            org.springframework.http.HttpHeaders headers = new org.springframework.http.HttpHeaders();
+            headers.setContentType(org.springframework.http.MediaType.APPLICATION_PDF);
+            headers.setContentDispositionFormData("inline", "Resolucion_" + numeroTicket + ".pdf");
+
+            return new ResponseEntity<>(pdfFirmado, headers, org.springframework.http.HttpStatus.OK);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.internalServerError().build();
+        }
     }
 
 }
