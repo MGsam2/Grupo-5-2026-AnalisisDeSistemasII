@@ -29,7 +29,7 @@ public class DocuSignService {
 
     // Método principal para generar la URL de firma embebida
     public java.util.Map<String, String> generarUrlDeFirma(String usuarioId, String nombre, String email,
-            byte[] pdfBytes, String numeroTicket)
+            byte[] pdfBytes, String numeroTicket, String rutaRetorno)
             throws Exception {
         ApiClient apiClient = autenticarDocuSign();
         EnvelopesApi envelopesApi = new EnvelopesApi(apiClient);
@@ -60,9 +60,16 @@ public class DocuSignService {
         // Etiqueta donde el usuario firmará
         SignHere signHere = new SignHere();
         signHere.setDocumentId("1");
-        signHere.setPageNumber("1");
-        signHere.setXPosition("100"); // Eje X
-        signHere.setYPosition("650"); // Eje Y (ajustar si es necesario para que caiga en la línea)
+
+        // El marcador debe existir en el PDF generado.
+        signHere.setAnchorString("[[FIRMA_AGENTE]]");
+        signHere.setAnchorCaseSensitive("true");
+        signHere.setAnchorMatchWholeWord("true");
+
+        // Ajustes iniciales; afinar según el PDF real.
+        signHere.setAnchorUnits("pixels");
+        signHere.setAnchorXOffset("0");
+        signHere.setAnchorYOffset("8");
 
         Tabs tabs = new Tabs();
         tabs.setSignHereTabs(Collections.singletonList(signHere));
@@ -88,7 +95,7 @@ public class DocuSignService {
 
         // 4. Generar la vista de firma (Recipient View)
         RecipientViewRequest viewRequest = new RecipientViewRequest();
-        viewRequest.setReturnUrl("http://localhost:5173/bandeja-agente?ticketFirma=" + numeroTicket);
+        viewRequest.setReturnUrl("http://localhost:5173" + rutaRetorno + "?ticketFirma=" + numeroTicket);
         viewRequest.setAuthenticationMethod("none");
         viewRequest.setEmail(email);
         viewRequest.setUserName(nombre);

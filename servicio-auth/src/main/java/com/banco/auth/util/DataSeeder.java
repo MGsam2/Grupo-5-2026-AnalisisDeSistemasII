@@ -29,8 +29,9 @@ public class DataSeeder implements CommandLineRunner {
             rolRepositorio.save(new Rol(RolNombre.ROLE_USUARIO_FINAL, "Cliente que interpone la queja"));
             rolRepositorio.save(new Rol(RolNombre.ROLE_AGENTE_BANCARIO, "Agente que revisa y propone solución"));
             rolRepositorio.save(new Rol(RolNombre.ROLE_SUPERVISOR, "Supervisor que aprueba la propuesta"));
-            rolRepositorio.save(new Rol(RolNombre.ROLE_JEFE_FINAL, "Emite el dictamen final"));
+            rolRepositorio.save(new Rol(RolNombre.ROLE_JEFE, "Jefe que respalda al Supervisor"));
             rolRepositorio.save(new Rol(RolNombre.ROLE_ADMIN, "Administrador del sistema"));
+            rolRepositorio.save(new Rol(RolNombre.ROLE_GERENTE, "Emite el dictamen final"));
         }
 
         // --- CREACIÓN DEL USUARIO ADMINISTRADOR ---
@@ -43,7 +44,7 @@ public class DataSeeder implements CommandLineRunner {
             Rol rolAdmin = rolRepositorio.findByNombre(RolNombre.ROLE_ADMIN).get();
             admin.getRoles().add(rolAdmin);
             usuarioRepositorio.save(admin);
-            System.out.println("✅ Usuario Admin creado.");
+            System.out.println("Usuario Admin creado.");
         }
 
         // --- CREACIÓN DE AGENTES BANCARIOS ---
@@ -53,7 +54,7 @@ public class DataSeeder implements CommandLineRunner {
 
         // --- CREACIÓN DE SUPERVISOR Y JEFE ---
         crearUsuarioSiNoExiste("Marta", "Ruiz", "supervisor1@banco.com", "Super123$", RolNombre.ROLE_SUPERVISOR);
-        crearUsuarioSiNoExiste("Jorge", "Díaz", "jefe1@banco.com", "Jefe123$", RolNombre.ROLE_JEFE_FINAL);
+        crearUsuarioSiNoExiste("Jorge", "Díaz", "jefe1@banco.com", "Jefe123$", RolNombre.ROLE_JEFE);
 
         // --- CREACIÓN DE USUARIOS FINALES ---
         crearUsuarioSiNoExiste("Sofia", "Perez", "astridsofiaperez29896@gmail.com", "Cliente123$", RolNombre.ROLE_USUARIO_FINAL);
@@ -74,7 +75,7 @@ public class DataSeeder implements CommandLineRunner {
             usuario.getRoles().add(rol);
             
             usuarioRepositorio.save(usuario);
-            System.out.println("✅ Usuario creado: " + email + " | Rol: " + rolNombre);
+            System.out.println("Usuario creado: " + email + " | Rol: " + rolNombre);
         }
     }
 }

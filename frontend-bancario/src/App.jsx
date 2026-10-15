@@ -5,6 +5,7 @@ import Portal from './components/Portal';
 import BandejaAgente from './components/BandejaAgente';
 import PortalAdmin from './components/PortalAdmin';
 import BandejaSupervisor from './components/BandejaSupervisor';
+import BandejaJefe from './components/BandejaJefe';
 
 function App() {
   return (
@@ -35,6 +36,11 @@ function App() {
         }} />} />
 
         <Route path="/bandeja-supervisor" element={<BandejaSupervisor onLogout={() => {
+          localStorage.removeItem('token');
+          window.location.href = '/login';
+        }} />} />
+
+        <Route path="/bandeja-jefe" element={<BandejaJefe onLogout={() => {
           localStorage.removeItem('token');
           window.location.href = '/login';
         }} />} />

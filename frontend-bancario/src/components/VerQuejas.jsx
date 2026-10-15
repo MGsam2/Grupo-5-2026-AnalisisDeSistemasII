@@ -13,6 +13,9 @@ function VerQuejas() {
   const [archivoRespuesta, setArchivoRespuesta] = useState(null);
   const [enviandoRespuesta, setEnviandoRespuesta] = useState(false);
   const [mensaje, setMensaje] = useState({ texto: '', tipo: '' });
+  const [mostrarSidebar, setMostrarSidebar] = useState(false);
+  const nombreParaMostrar = "Agente Operativo";
+  const iniciales = "AG";
 
   const obtenerToken = () => {
     let tokenString = localStorage.getItem('token');
