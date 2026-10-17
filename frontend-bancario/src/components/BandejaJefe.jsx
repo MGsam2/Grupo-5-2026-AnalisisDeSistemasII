@@ -471,14 +471,14 @@ function BandejaJefe({ onLogout }) {
 
                       <div style={{ display: 'flex', gap: '15px', flexWrap: 'wrap' }}>
                         <button
-                          onClick={() => ejecutarAccionJefe('devolver', numeroTicketReal)}
+                          onClick={() => ejecutarAccionJefe('jefe', numeroTicketReal)}
                           disabled={controlesBloqueados}
                           style={{ padding: '10px 20px', background: '#ef4444', color: 'white', border: 'none', borderRadius: '6px', fontWeight: '600', cursor: controlesBloqueados ? 'not-allowed' : 'pointer', opacity: controlesBloqueados ? 0.6 : 1 }}
                         >
                           Devolver al Supervisor
                         </button>
                         <button
-                          onClick={() => ejecutarAccionJefe('aprobar', numeroTicketReal)}
+                          onClick={() => ejecutarAccionJefe('gerente', numeroTicketReal)}
                           disabled={controlesBloqueados}
                           style={{ padding: '10px 20px', background: '#00a8ff', color: 'white', border: 'none', borderRadius: '6px', fontWeight: '600', cursor: controlesBloqueados ? 'not-allowed' : 'pointer', opacity: controlesBloqueados ? 0.6 : 1 }}
                         >

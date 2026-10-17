@@ -434,7 +434,7 @@ function VerQuejas() {
   // ==========================================
   return (
     <div className="content-card fade-in">
-      <h2 className="card-title" style={{ color: '#0f172a', marginBottom: '8px' }}>Tus quejas registradas</h2>
+      <h1 style={{ color: '#0f172a', fontSize: '1.8rem', marginTop: 0 }}>Tus quejas registradas</h1>
       <p className="card-text" style={{ color: '#64748b', marginBottom: '30px' }}>
         Historial de tickets generados y su estado actual en la base de datos corporativa.
       </p>
